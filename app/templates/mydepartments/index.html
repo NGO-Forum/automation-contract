@@ -1,0 +1,654 @@
+{% extends "base.html" %}
+{% block title %}My Department{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mydepartment.css') }}" />
+
+
+<div class="user-container mt-4">
+  <div class="row g-4 mb-4">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card card-1 h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h6 class="card-title text-muted">Department</h6>
+              <h5 class="mb-1">{{ department.name|default('N/A') }}</h5>
+              <small class="text-success">Current Department</small>
+            </div>
+            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                 style="width:50px; height:50px;">
+              <i class="bx bx-building fs-4"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card card-1 h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h6 class="card-title text-muted">Total Users</h6>
+              <h4 class="mb-1">{{ total_users|default(0) }}</h4>
+              <small class="text-success">Users in Department</small>
+            </div>
+            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center"
+                 style="width:50px; height:50px;">
+              <i class="bx bx-group fs-4"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-1 mb-3 management-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h2>My Department Users</h2>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
+        <i class="bi bi-plus-circle"></i> Add User
+      </button>
+    </div>
+    <div class="card-body">
+      <div class="filter-container">
+        <div class="search-input col-md-4">
+          <i class="bx bx-search"></i>
+          <input type="text" class="form-control" id="searchInput" placeholder="Search by username or email" value="{{ search|default('') }}">
+        </div>
+        <div class="col-md-3">
+          <select class="form-select" id="sortFilter">
+            <option value="username_asc" {% if sort|default('username_asc') == 'username_asc' %}selected{% endif %}>Username (A-Z)</option>
+            <option value="username_desc" {% if sort|default('username_asc') == 'username_desc' %}selected{% endif %}>Username (Z-A)</option>
+            <option value="email_asc" {% if sort|default('username_asc') == 'email_asc' %}selected{% endif %}>Email (A-Z)</option>
+            <option value="email_desc" {% if sort|default('username_asc') == 'email_desc' %}selected{% endif %}>Email (Z-A)</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button class="btn btn-clear" id="clearFilters">Clear Filters</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shadow-sm card-1 position-relative">
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="loading-spinner"></div>
+    </div>
+    <div class="card-body">
+      <table class="table table-hover align-middle table-custom">
+        <thead>
+          <tr>
+            <th>Id</th>
+            <th>Profile</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Role</th>
+            <th>Department</th>
+            <th>Address</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="userTableBody">
+          {% for user in users|default([]) %}
+          <tr>
+            <td>{{ loop.index + (pagination.page - 1) * pagination.per_page }}</td>
+            <td>
+              {% if user.get_image_url()|default(None) %}
+              <img src="{{ user.get_image_url() }}" alt="Profile Picture" class="profile-pic">
+              {% else %}
+              N/A
+              {% endif %}
+            </td>
+            <td>{{ user.username|default('N/A') }}</td>
+            <td>{{ user.email|default('N/A') }}</td>
+            <td>{{ user.phone_number|default('N/A') }}</td>
+            <td>{{ user.role.name if user.role else 'N/A' }}</td>
+            <td>{{ user.department.name if user.department else 'N/A' }}</td>
+            <td>{{ user.address|default('N/A') }}</td>
+            <td>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="bx bx-dots-horizontal-rounded"></i>
+                </button>
+                <ul class="dropdown-menu card-1">
+                  <li>
+                    <a class="dropdown-item" href="{{ url_for('users.profile', user_id=user.id, page=pagination.page|default(1)) }}">
+                      <i class="bx bx-user"></i> View
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item edit-link" href="#" data-user-id="{{ user.id }}">
+                      <i class="bx bx-edit"></i> Edit
+                    </a>
+                  </li>
+                  {% if not (user.id == current_user.id and not current_user.has_role('Admin')) %}
+                  <li>
+                    <a class="dropdown-item text-danger delete-link" href="#" data-user-id="{{ user.id }}" data-username="{{ user.username|default('N/A') }}">
+                      <i class="bx bx-trash"></i> Delete
+                    </a>
+                  </li>
+                  {% endif %}
+                </ul>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="d-flex justify-content-between align-items-center mt-3" id="paginationControls">
+      <div class="col-md-4">
+        <select class="form-select" id="perPageFilter">
+          <option value="7" {% if pagination.per_page|default(7) == 7 %}selected{% endif %}>7 per page</option>
+          <option value="10" {% if pagination.per_page|default(7) == 10 %}selected{% endif %}>10 per page</option>
+          <option value="25" {% if pagination.per_page|default(7) == 25 %}selected{% endif %}>25 per page</option>
+          <option value="50" {% if pagination.per_page|default(7) == 50 %}selected{% endif %}>50 per page</option>
+        </select>
+      </div>
+      <nav>
+        <ul class="pagination mb-0">
+          {% if pagination.has_prev|default(False) %}
+          <li class="page-item">
+            <a class="page-link" href="#" data-page="{{ pagination.prev_num|default(1) }}">Previous</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">Previous</span>
+          </li>
+          {% endif %}
+          {% for page_num in pagination.iter_pages()|default([]) %}
+          {% if page_num %}
+          <li class="page-item {% if page_num == pagination.page|default(1) %}active{% endif %}">
+            <a class="page-link" href="#" data-page="{{ page_num }}">{{ page_num }}</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">...</span>
+          </li>
+          {% endif %}
+          {% endfor %}
+          {% if pagination.has_next|default(False) %}
+          <li class="page-item">
+            <a class="page-link" href="#" data-page="{{ pagination.next_num|default(1) }}">Next</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">Next</span>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Create User Modal -->
+  <div class="modal fade modal-center" id="createUserModal" tabindex="-1">
+    <div class="modal-dialog">
+      <form method="POST" action="{{ url_for('mydepartments.create', page=pagination.page|default(1)) }}"
+            enctype="multipart/form-data">
+        <div class="modal-content">
+          <div class="modal-header bg-primary">
+            <h5 class="modal-title text-white">Add User</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Username</label>
+              <input type="text" class="form-control" name="username" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" name="email" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Password</label>
+              <input type="password" class="form-control" name="password" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Phone Number</label>
+              <input type="text" class="form-control" name="phone_number" id="phoneInputCreate">
+              <div class="invalid-feedback" id="phoneErrorCreate" style="display:none; color:red;">
+                Phone number already exists.
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Role</label>
+              <select class="form-select" name="role_id">
+                <option value="">None</option>
+                {% for role in roles|default([]) %}
+                <option value="{{ role.id }}">{{ role.name|default('N/A') }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Department</label>
+              <select class="form-select" name="department_id" disabled>
+                {% for department in departments|default([]) %}
+                <option value="{{ department.id }}" selected>{{ department.name|default('N/A') }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Address</label>
+              <textarea class="form-control" name="address" rows="3"></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Profile Picture</label>
+              <div class="image-upload-container" ondragover="event.preventDefault(); this.classList.add('dragover');"
+                   ondragleave="this.classList.remove('dragover');"
+                   ondrop="event.preventDefault(); this.classList.remove('dragover'); handleImageDrop(event, 'imageInputCreate', 'imagePreviewCreate');">
+                <div class="image-preview image-preview-placeholder" id="imagePreviewCreate"></div>
+                <label class="custom-file-label" for="imageInputCreate">
+                  <i class="bx bx-upload"></i> Choose or Drop Image
+                </label>
+                <input type="file" class="custom-file-input" id="imageInputCreate" name="image" accept="image/*">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div class="modal fade modal-center" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog">
+      <form method="POST" action="" enctype="multipart/form-data" id="editForm">
+        <input type="hidden" name="remove_image" id="removeImageInput" value="0">
+        <div class="modal-content">
+          <div class="modal-header bg-primary">
+            <h5 class="modal-title text-white">Edit User</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Username</label>
+              <input type="text" class="form-control" name="username" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" name="email" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Password (leave blank to keep unchanged)</label>
+              <input type="password" class="form-control" name="password">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Phone Number</label>
+              <input type="text" class="form-control" name="phone_number" id="phoneInputEdit">
+              <div class="invalid-feedback" id="phoneErrorEdit" style="display:none; color:red;">
+                Phone number already exists.
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Role</label>
+              <select class="form-select" name="role_id">
+                <option value="">None</option>
+                {% for role in roles|default([]) %}
+                <option value="{{ role.id }}">{{ role.name|default('N/A') }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Department</label>
+              <select class="form-select" name="department_id" disabled>
+                {% for department in departments|default([]) %}
+                <option value="{{ department.id }}" selected>{{ department.name|default('N/A') }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Address</label>
+              <textarea class="form-control" name="address" rows="3"></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Profile Picture</label>
+              <div class="image-upload-container"
+                   ondragover="event.preventDefault(); this.classList.add('dragover');"
+                   ondragleave="this.classList.remove('dragover');"
+                   ondrop="event.preventDefault(); this.classList.remove('dragover'); handleImageDrop(event, 'imageInputEdit', 'imagePreviewEdit');">
+                <div class="image-preview image-preview-placeholder" id="imagePreviewEdit"></div>
+                <label class="custom-file-label" for="imageInputEdit">
+                  <i class="bx bx-upload"></i> Choose or Drop Image
+                </label>
+                <input type="file" class="custom-file-input" id="imageInputEdit" name="image" accept="image/*">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Update</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete User Modal -->
+  <div class="modal fade" id="deleteUserModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title"><i class="bx bx-trash"></i> Confirm Delete</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to delete user <strong id="deleteUsername"></strong>?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <form id="deleteForm" method="POST" class="d-inline">
+            <button type="submit" class="btn btn-danger">Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+  function validatePhoneUnique(inputId, errorId, userId=null) {
+    const phoneInput = $(`#${inputId}`);
+    const errorDiv = $(`#${errorId}`);
+    phoneInput.on('blur keyup', function() {
+      const phoneNumber = phoneInput.val().trim();
+      if (!phoneNumber) {
+        errorDiv.hide();
+        phoneInput.removeClass('is-invalid');
+        return;
+      }
+      $.get('/users/check_phone', { phone_number: phoneNumber, user_id: userId }, function(data) {
+        if (data.exists) {
+          errorDiv.show();
+          phoneInput.addClass('is-invalid');
+        } else {
+          errorDiv.hide();
+          phoneInput.removeClass('is-invalid');
+        }
+      });
+    });
+  }
+  // Apply validation to Create form
+  validatePhoneUnique('phoneInputCreate', 'phoneErrorCreate');
+  // Apply validation to Edit form after modal loads
+  $(document).on('shown.bs.modal', '#editUserModal', function() {
+    const userId = $('#editForm').attr('action').match(/update\/(\d+)/)[1];
+    validatePhoneUnique('phoneInputEdit', 'phoneErrorEdit', userId);
+  });
+  // Prevent submission if invalid
+  $('#createUserModal form, #editUserModal form').on('submit', function(e) {
+    if ($(this).find('.is-invalid').length > 0) {
+      e.preventDefault();
+      alert('Please fix errors before submitting.');
+    }
+  });
+  $(document).ready(function() {
+    let currentPage = {{ pagination.page|default(1) }};
+    let perPage = {{ pagination.per_page|default(7) }};
+    let debounceTimer;
+    const currentUserId = {{ current_user.id }};
+    const isAdmin = {{ 'true' if current_user.has_role('Admin') else 'false' }};
+    function debounce(func, delay) {
+      return function() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(func, delay);
+      };
+    }
+    function updateTable(page) {
+      if (page) {
+        currentPage = page;
+      }
+      const search = $('#searchInput').val().trim();
+      const sort = $('#sortFilter').val();
+      const per_page = $('#perPageFilter').val();
+      $('#loadingOverlay').show();
+      $.ajax({
+        url: '{{ url_for("mydepartments.index") }}',
+        type: 'GET',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        data: { search: search, sort: sort, page: currentPage, per_page: per_page },
+        success: function(data) {
+          const tbody = $('#userTableBody');
+          tbody.empty();
+          if (data.users.length === 0) {
+            tbody.append('<tr><td colspan="9" class="text-center">No users found in your department</td></tr>');
+          } else {
+            data.users.forEach((user, index) => {
+              const isCurrentUser = user.id === currentUserId && !isAdmin;
+              const row = `
+                <tr>
+                  <td>${index + 1 + (data.pagination.page - 1) * data.pagination.per_page}</td>
+                  <td>
+                    ${user.image_url ? `<img src="${user.image_url}" alt="Profile Picture" class="profile-pic">` : 'N/A'}
+                  </td>
+                  <td>${user.username}</td>
+                  <td>${user.email}</td>
+                  <td>${user.phone_number}</td>
+                  <td>${user.role_name}</td>
+                  <td>${user.department_name}</td>
+                  <td>${user.address}</td>
+                  <td>
+                    <div class="dropdown">
+                      <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bx bx-dots-horizontal-rounded"></i>
+                      </button>
+                      <ul class="dropdown-menu card-1">
+                        <li>
+                          <a class="dropdown-item" href="/users/profile/${user.id}?page=${data.pagination.page}">
+                            <i class="bx bx-user"></i> View
+                          </a>
+                        </li>
+                        <li>
+                          <a class="dropdown-item edit-link" href="#" data-user-id="${user.id}">
+                            <i class="bx bx-edit"></i> Edit
+                          </a>
+                        </li>
+                        ${!isCurrentUser ? `
+                        <li>
+                          <a class="dropdown-item text-danger delete-link" href="#" data-user-id="${user.id}" data-username="${user.username}">
+                            <i class="bx bx-trash"></i> Delete
+                          </a>
+                        </li>
+                        ` : ''}
+                      </ul>
+                    </div>
+                  </td>
+                </tr>`;
+              tbody.append(row);
+            });
+          }
+          const pagination = $('#paginationControls');
+          pagination.empty();
+          let paginationHtml = `
+            <div class="d-flex justify-content-between align-items-center mt-3" id="paginationControls">
+              <div class="col-md-4">
+                <select class="form-select" id="perPageFilter">
+                  <option value="7" ${data.pagination.per_page === 7 ? 'selected' : ''}>7 per page</option>
+                  <option value="10" ${data.pagination.per_page === 10 ? 'selected' : ''}>10 per page</option>
+                  <option value="25" ${data.pagination.per_page === 25 ? 'selected' : ''}>25 per page</option>
+                  <option value="50" ${data.pagination.per_page === 50 ? 'selected' : ''}>50 per page</option>
+                </select>
+              </div>
+              <nav>
+                <ul class="pagination mb-0">
+          `;
+          if (data.pagination.has_prev) {
+            paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${data.pagination.prev_num}">Previous</a></li>`;
+          } else {
+            paginationHtml += '<li class="page-item disabled"><span class="page-link">Previous</span></li>';
+          }
+          data.pagination.iter_pages.forEach(pageNum => {
+            if (pageNum) {
+              paginationHtml += `<li class="page-item ${pageNum === data.pagination.page ? 'active' : ''}">
+                <a class="page-link" href="#" data-page="${pageNum}">${pageNum}</a>
+              </li>`;
+            } else {
+              paginationHtml += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+            }
+          });
+          if (data.pagination.has_next) {
+            paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${data.pagination.next_num}">Next</a></li>`;
+          } else {
+            paginationHtml += '<li class="page-item disabled"><span class="page-link">Next</span></li>';
+          }
+          paginationHtml += '</ul></nav></div>';
+          pagination.html(paginationHtml);
+          $('#loadingOverlay').hide();
+        },
+        error: function() {
+          $('#loadingOverlay').hide();
+          alert('Error loading users. Please try again.');
+        }
+      });
+    }
+    function handleImagePreview(inputId, previewId) {
+      const input = document.getElementById(inputId);
+      const preview = document.getElementById(previewId);
+      if (!input || !preview) return;
+      input.addEventListener('change', function () {
+        const file = this.files[0];
+        if (file && file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            preview.innerHTML = `<img src="${e.target.result}" alt="Profile Picture">`;
+            preview.classList.remove('image-preview-placeholder');
+            addRemoveButton(inputId, previewId);
+            if (inputId === 'imageInputEdit') {
+              $('#removeImageInput').val('0');
+            }
+          };
+          reader.onerror = function () {
+            console.error('Error reading file');
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+    function handleImageDrop(event, inputId, previewId) {
+      const input = document.getElementById(inputId);
+      const preview = document.getElementById(previewId);
+      const file = event.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        input.files = event.dataTransfer.files;
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          preview.innerHTML = `<img src="${e.target.result}" alt="Profile Picture">`;
+          preview.classList.remove('image-preview-placeholder');
+          addRemoveButton(inputId, previewId);
+          if (inputId === 'imageInputEdit') {
+            $('#removeImageInput').val('0');
+          }
+        };
+        reader.onerror = function () {
+          console.error('Error reading dropped file');
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+    function addRemoveButton(inputId, previewId) {
+      const preview = document.getElementById(previewId);
+      const container = preview.parentElement;
+      let removeBtn = container.querySelector('.remove-image-btn');
+      if (!removeBtn) {
+        removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-image-btn';
+        removeBtn.textContent = 'Remove Image';
+        removeBtn.type = 'button';
+        removeBtn.onclick = () => removeImage(inputId, previewId);
+        container.appendChild(removeBtn);
+      }
+    }
+    function removeImage(inputId, previewId) {
+      const input = document.getElementById(inputId);
+      const preview = document.getElementById(previewId);
+      input.value = '';
+      preview.innerHTML = '';
+      preview.classList.add('image-preview-placeholder');
+      const removeBtn = preview.parentElement.querySelector('.remove-image-btn');
+      if (removeBtn) {
+        removeBtn.remove();
+      }
+      if (inputId === 'imageInputEdit') {
+        $('#removeImageInput').val('1');
+      }
+    }
+    // Initialize image preview for Create and Edit modals
+    handleImagePreview('imageInputCreate', 'imagePreviewCreate');
+    handleImagePreview('imageInputEdit', 'imagePreviewEdit');
+    $('#searchInput').on('input', debounce(function() {
+      currentPage = 1;
+      updateTable();
+    }, 300));
+    $('#sortFilter').on('change', function() {
+      currentPage = 1;
+      updateTable();
+    });
+    $('#perPageFilter').on('change', function() {
+      perPage = $(this).val();
+      currentPage = 1;
+      updateTable();
+    });
+    $('#clearFilters').on('click', function() {
+      $('#searchInput').val('');
+      $('#sortFilter').val('username_asc');
+      $('#perPageFilter').val('7');
+      perPage = 7;
+      currentPage = 1;
+      updateTable();
+    });
+    $(document).on('click', '.pagination a.page-link', function(e) {
+      e.preventDefault();
+      const page = $(this).data('page');
+      window.history.pushState({}, '', `?page=${page}&search=${encodeURIComponent($('#searchInput').val())}&sort=${$('#sortFilter').val()}&per_page=${$('#perPageFilter').val()}`);
+      updateTable(page);
+    });
+    $(document).on('click', '.edit-link', function(e) {
+      e.preventDefault();
+      const userId = $(this).data('user-id');
+      $.get(`/mydepartments/${userId}/json`, function(data) {
+        $('#editForm input[name="username"]').val(data.username);
+        $('#editForm input[name="email"]').val(data.email);
+        $('#editForm input[name="phone_number"]').val(data.phone_number || '');
+        $('#editForm select[name="role_id"]').val(data.role_id || '');
+        $('#editForm select[name="department_id"]').val(data.department_id || '');
+        $('#editForm textarea[name="address"]').val(data.address || '');
+        $('#editForm input[name="password"]').val('');
+        const preview = document.getElementById('imagePreviewEdit');
+        preview.innerHTML = data.image_url ? `<img src="${data.image_url}" alt="Profile Picture">` : '';
+        if (data.image_url) {
+          preview.classList.remove('image-preview-placeholder');
+          addRemoveButton('imageInputEdit', 'imagePreviewEdit');
+          $('#removeImageInput').val('0');
+        } else {
+          preview.classList.add('image-preview-placeholder');
+          const removeBtn = preview.parentElement.querySelector('.remove-image-btn');
+          if (removeBtn) removeBtn.remove();
+          $('#removeImageInput').val('0');
+        }
+        $('#editForm').attr('action', `/mydepartments/update/${userId}?page=${currentPage}`);
+        $('#editUserModal').modal('show');
+      }).fail(function() {
+        alert('Error loading user data. Please try again.');
+      });
+    });
+    $(document).on('click', '.delete-link', function(e) {
+      e.preventDefault();
+      const userId = $(this).data('user-id');
+      const username = $(this).data('username');
+      $('#deleteUsername').text(username);
+      $('#deleteForm').attr('action', `/mydepartments/delete/${userId}?page=${currentPage}`);
+      $('#deleteUserModal').modal('show');
+    });
+    $('#sortFilter').val('{{ sort|default('username_asc') }}');
+  });
+</script>
+{% endblock %}

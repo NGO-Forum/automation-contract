@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+{% block title %}Contract List{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/contract.css') }}" />
+
+<div class="container mt-4">
+    <!-- Total Contracts Cards -->
+    <div class="row mb-4 cards-row">
+        <!-- User-specific Total Contracts Card -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-1 h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-muted">{{ 'Your Contracts' if not is_admin else 'Total Contracts (Filtered)' }}</h6>
+                            <h4 class="mb-1">{{ total_contracts }}</h4>
+                            <h6 class="text-muted">Last Contract: <strong>{{ last_contract_number if last_contract_number else 'None' }}</strong></h6>
+                        </div>
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                            <i class="bx bx-file fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Global Total Contracts Card -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-1 h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-muted">Global Contracts</h6>
+                            <h4 class="mb-1">{{ total_contracts_global }}</h4>
+                            <small class="text-muted">Across all users</small>
+                        </div>
+                        <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                            <i class="bx bx-globe fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="table-card card-1">
+        <form id="filterForm" action="{{ url_for('contracts.index') }}" method="get" class="filter-form d-flex flex-wrap gap-3 mb-4 align-items-center justify-content-between">
+            <a href="{{ url_for('contracts.create') }}" class="btn btn-primary btn-create"><i class='bx bx-plus-circle'></i> Add New Consultant</a>
+
+            <div class="d-flex flex-wrap gap-3 align-items-center">
+                <!-- Search -->
+                <div class="input-group w-auto position-relative">
+                    <span class="input-group-text"><i class='bx bx-search'></i></span>
+                    <input type="text" name="search" id="searchInput" class="form-control" placeholder="Search by Contract Number, Project Title, or Party B" value="{{ search_query }}">
+                    <button type="button" id="clearSearch" class="btn btn-outline-secondary {% if not search_query %}d-none{% endif %}"><i class='bx bx-x'></i></button>
+                    <button type="submit" class="btn btn-primary" id="searchButton">Search</button>
+                    <div id="searchSpinner" class="spinner-border spinner-border-sm position-absolute" style="right: 80px; top: 50%; transform: translateY(-50%); display: none;" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+
+                <!-- Sort -->
+                <div class="input-group w-auto">
+                    <label class="input-group-text" for="sortSelect">Sort</label>
+                    <select id="sortSelect" name="sort" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                        <option value="created_at_desc" {% if sort_order == 'created_at_desc' %}selected{% endif %}>Newest First</option>
+                        <option value="contract_number_asc" {% if sort_order == 'contract_number_asc' %}selected{% endif %}>Contract Number (ASC)</option>
+                        <option value="contract_number_desc" {% if sort_order == 'contract_number_desc' %}selected{% endif %}>Contract Number (DESC)</option>
+                        <option value="start_date_asc" {% if sort_order == 'start_date_asc' %}selected{% endif %}>Start Date (ASC)</option>
+                        <option value="start_date_desc" {% if sort_order == 'start_date_desc' %}selected{% endif %}>Start Date (DESC)</option>
+                        <option value="total_fee_asc" {% if sort_order == 'total_fee_asc' %}selected{% endif %}>Total Fee (ASC)</option>
+                        <option value="total_fee_desc" {% if sort_order == 'total_fee_desc' %}selected{% endif %}>Total Fee (DESC)</option>
+                    </select>
+                </div>
+
+                <!-- Entries -->
+                <div class="input-group w-auto">
+                    <label class="input-group-text" for="entriesSelect">Show</label>
+                    <select id="entriesSelect" name="entries" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                        <option value="5" {% if entries_per_page == 5 %}selected{% endif %}>5</option>
+                        <option value="10" {% if entries_per_page == 10 %}selected{% endif %}>10</option>
+                        <option value="15" {% if entries_per_page == 15 %}selected{% endif %}>15</option>
+                    </select>
+                </div>
+
+                <!-- Export -->
+                <div class="dropdown">
+                    <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class='bx bx-download'></i> Export
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('contracts.export_excel', search=search_query, sort=sort_order) }}">Export to Excel</a></li>
+                        {% if is_admin %}
+                        <li><a class="dropdown-item" href="{{ url_for('contracts.export_excel_all', search=search_query, sort=sort_order) }}">Export All Contracts to Excel</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('contracts.export_all_docx') }}">Export All Contracts to DOCX</a></li>
+                        {% endif %}
+                        {% if not is_admin %}
+                        <li><a class="dropdown-item" href="{{ url_for('contracts.export_all_docx') }}">Export My Contracts to DOCX</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </form>
+
+        <!-- Table -->
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Contract Number</th>
+                        <th class="mobile-hidden">Project Title</th>
+                        <th>Party B</th>
+                        <th class="tablet-hidden mobile-hidden">Start Date</th>
+                        <th class="tablet-hidden mobile-hidden">End Date</th>
+                        <th class="mobile-hidden">Total Fee (USD)</th>
+                        <th class="mobile-hidden">Articles</th>
+                        {% if is_admin %}
+                        <th class="mobile-hidden">Created By</th>
+                        {% endif %}
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for contract in contracts %}
+                    <tr>
+                        <td>{{ contract.contract_number or 'N/A' }}</td>
+                        <td class="mobile-hidden">{{ contract.project_title or 'N/A' }}</td>
+                        <td>{{ contract.party_b_signature_name or 'N/A' }}</td>
+                        <td class="tablet-hidden mobile-hidden">{{ contract.agreement_start_date_display or 'N/A' }}</td>
+                        <td class="tablet-hidden mobile-hidden">{{ contract.agreement_end_date_display or 'N/A' }}</td>
+                        <td class="mobile-hidden">${{ contract.total_fee_usd or '0.00' }}</td>
+                        <td class="mobile-hidden">{{ contract.custom_article_sentences|length }} {{ 'article' if contract.custom_article_sentences|length == 1 else 'articles' }}</td>
+                        {% if is_admin %}
+                        <td class="mobile-hidden">{{ contract.username or 'N/A' }}</td>
+                        {% endif %}
+                        <td>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                                    <i class="bx bx-dots-horizontal-rounded"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{{ url_for('contracts.view', contract_id=contract.id) }}"><i class="bx bx-show"></i> View</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('contracts.update', contract_id=contract.id) }}"><i class="bx bx-edit"></i> Edit</a></li>
+                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#downloadConfirmModal{{ contract.id }}" data-contract-number="{{ contract.contract_number or 'N/A' }}"><i class="bx bx-download"></i> Download Docx</a></li>
+                                    <!--<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#sendEmailModal" data-contract-id="{{ contract.id }}"><i class="bx bx-envelope"></i> Send via Email</a></li>-->
+                                    <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal{{ contract.id }}"><i class="bx bx-trash"></i> Delete</a></li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Delete Modal -->
+                    <div class="modal fade" id="deleteConfirmModal{{ contract.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Confirm Deletion</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    Are you sure you want to delete the contract "{{ contract.contract_number or 'N/A' }}"? This action will mark the contract as deleted.
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <form action="{{ url_for('contracts.delete', contract_id=contract.id) }}" method="POST">
+                                        <button type="submit" class="btn btn-danger">Delete</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Download Confirm Modal -->
+                    <div class="modal fade" id="downloadConfirmModal{{ contract.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Download Contract: <span id="contractNumber{{ contract.id }}">{{ contract.contract_number or 'N/A' }}</span></h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>This is the latest version of consultant contract number <strong id="contractNumberBody{{ contract.id }}">{{ contract.contract_number or 'N/A' }}</strong>. Please confirm you want to download it.</p>
+                                    <p class="text-muted">Note: Downloading will also send the contract via email to the designated recipients. Ensure all details are up-to-date before proceeding.</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <a href="{{ url_for('contracts.export_docx', contract_id=contract.id) }}" class="btn btn-primary">Download</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Send Email Modal -->
+        <div class="modal fade" id="sendEmailModal" tabindex="-1" aria-labelledby="sendEmailModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="sendEmailModalLabel">Send Contract via Email</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="sendEmailForm" action="{{ url_for('contracts.send_docx') }}" method="POST">
+                            <div class="mb-3">
+                                <label for="toEmail" class="form-label">To (required, comma-separated for multiple)</label>
+                                <input type="text" class="form-control" id="toEmail" name="to_emails" placeholder="example1@gmail.com, example2@gmail.com" required>
+                                <small class="form-text text-muted">Enter primary recipient emails, separated by commas.</small>
+                            </div>
+                            <div class="mb-3">
+                                <a href="#" id="toggleCc" class="text-primary text-decoration-none"><i class="bx bx-plus-circle"></i> Add CC</a>
+                                <div id="ccInputGroup" class="mt-2 d-none fade">
+                                    <label for="ccEmail" class="form-label">CC (optional, comma-separated)</label>
+                                    <input type="text" class="form-control" id="ccEmail" name="cc_emails" placeholder="example1@gmail.com, example2@gmail.com">
+                                    <small class="form-text text-muted">Enter carbon copy emails, separated by commas.</small>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <a href="#" id="toggleBcc" class="text-primary text-decoration-none"><i class="bx bx-plus-circle"></i> Add BCC</a>
+                                <div id="bccInputGroup" class="mt-2 d-none fade">
+                                    <label for="bccEmail" class="form-label">BCC (optional, comma-separated)</label>
+                                    <input type="text" class="form-control" id="bccEmail" name="bcc_emails" placeholder="example1@gmail.com, example2@gmail.com">
+                                    <small class="form-text text-muted">Enter blind carbon copy emails, separated by commas.</small>
+                                </div>
+                            </div>
+                            <input type="hidden" id="contractId" name="contract_id">
+                            <button type="submit" class="btn btn-primary">Send Email</button>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div id="message" class="{% if contracts|length == 0 %}error{% else %}d-none{% endif %}">
+                {% if contracts|length == 0 %}No contracts found.{% endif %}
+            </div>
+            <nav>
+                <ul class="pagination mb-0">
+                    {% if pagination.has_prev %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('contracts.index', page=pagination.prev_num, search=search_query, sort=sort_order, entries=entries_per_page) }}">Previous</a></li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                    {% endif %}
+
+                    {% for page_num in pagination.iter_pages() %}
+                        {% if page_num %}
+                        <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('contracts.index', page=page_num, search=search_query, sort=sort_order, entries=entries_per_page) }}">{{ page_num }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if pagination.has_next %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('contracts.index', page=pagination.next_num, search=search_query, sort=sort_order, entries=entries_per_page) }}">Next</a></li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">Next</span></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for Search, Modals, and Email Form -->
+<script>
+    // Debounce function to limit search input events
+    function debounce(func, wait) {
+        let timeout;
+        return function (...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func(...args), wait);
+        };
+    }
+
+    // Search functionality
+    const searchForm = document.getElementById('filterForm');
+    const searchInput = document.getElementById('searchInput');
+    const clearSearch = document.getElementById('clearSearch');
+    const searchSpinner = document.getElementById('searchSpinner');
+
+    searchInput.addEventListener('input', debounce(() => {
+        searchSpinner.style.display = 'block';
+        clearSearch.classList.toggle('d-none', !searchInput.value);
+        searchForm.submit();
+    }, 500));
+
+    clearSearch.addEventListener('click', () => {
+        searchInput.value = '';
+        clearSearch.classList.add('d-none');
+        searchForm.submit();
+    });
+
+    window.addEventListener('load', () => {
+        searchSpinner.style.display = 'none';
+    });
+
+    // Send Email Modal - Set contract_id and reset inputs
+    const sendEmailModal = document.getElementById('sendEmailModal');
+    sendEmailModal.addEventListener('show.bs.modal', event => {
+        const button = event.relatedTarget;
+        const contractId = button.getAttribute('data-contract-id');
+        const modalContractId = sendEmailModal.querySelector('#contractId');
+        modalContractId.value = contractId;
+
+        // Reset CC and BCC inputs
+        const ccInputGroup = document.getElementById('ccInputGroup');
+        const bccInputGroup = document.getElementById('bccInputGroup');
+        const ccEmail = document.getElementById('ccEmail');
+        const bccEmail = document.getElementById('bccEmail');
+        ccInputGroup.classList.add('d-none');
+        bccInputGroup.classList.add('d-none');
+        ccEmail.value = '';
+        bccEmail.value = '';
+    });
+
+    // Toggle CC input
+    const toggleCc = document.getElementById('toggleCc');
+    toggleCc.addEventListener('click', event => {
+        event.preventDefault();
+        const ccInputGroup = document.getElementById('ccInputGroup');
+        ccInputGroup.classList.toggle('d-none');
+        ccInputGroup.classList.toggle('fade');
+        if (!ccInputGroup.classList.contains('d-none')) {
+            document.getElementById('ccEmail').focus();
+        }
+    });
+
+    // Toggle BCC input
+    const toggleBcc = document.getElementById('toggleBcc');
+    toggleBcc.addEventListener('click', event => {
+        event.preventDefault();
+        const bccInputGroup = document.getElementById('bccInputGroup');
+        bccInputGroup.classList.toggle('d-none');
+        bccInputGroup.classList.toggle('fade');
+        if (!bccInputGroup.classList.contains('d-none')) {
+            document.getElementById('bccEmail').focus();
+        }
+    });
+
+    // Email form validation
+    const sendEmailForm = document.getElementById('sendEmailForm');
+    sendEmailForm.addEventListener('submit', event => {
+        const toEmail = document.getElementById('toEmail').value.trim();
+        if (!toEmail) {
+            event.preventDefault();
+            alert('Please provide at least one "To" email address.');
+            return;
+        }
+        // Basic email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const toEmails = toEmail.split(',').map(email => email.trim());
+        for (const email of toEmails) {
+            if (!emailRegex.test(email)) {
+                event.preventDefault();
+                alert(`Invalid email address: ${email}`);
+                return;
+            }
+        }
+    });
+
+    // Download Modal - Set contract number dynamically
+    document.querySelectorAll('[data-bs-target^="#downloadConfirmModal"]').forEach(button => {
+        button.addEventListener('click', event => {
+            const contractNumber = event.currentTarget.getAttribute('data-contract-number');
+            const modal = document.querySelector(event.currentTarget.getAttribute('data-bs-target'));
+            const titleSpan = modal.querySelector('.modal-title span');
+            const bodySpan = modal.querySelector('.modal-body strong');
+            if (titleSpan) titleSpan.textContent = contractNumber;
+            if (bodySpan) bodySpan.textContent = contractNumber;
+        });
+    });
+</script>
+{% endblock %}

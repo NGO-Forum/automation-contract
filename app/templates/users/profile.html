@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+{% block title %}User Profile - {{ user.username|default('N/A') }}{% endblock %}
+
+{% block content %}
+<!-- Tailwind CSS CDN -->
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<!-- Boxicons CDN -->
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}" />
+
+<div class="profile-container">
+  <div class="profile-card">
+    <div class="profile-header">
+      <video autoplay muted loop playsinline>
+        <source src="{{ url_for('static', filename='video/cover.mp4') }}" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <div class="profile-pic-container">
+        <img src="{{ user.get_image_url()|default('https://via.placeholder.com/140') }}" alt="Profile Picture" class="profile-pic">
+      </div>
+      <h2 class="mt-4 text-3xl font-extrabold tracking-tight" style="position: relative; z-index: 2;">{{ user.username|default('N/A') }}</h2>
+      <div class="role-badge" style="position: relative; z-index: 2;">{{ user.role.name if user.role else 'No Role Assigned' }}</div>
+    </div>
+    <div class="profile-body">
+      <!-- Profile Completion Indicator -->
+      {% set completion = 0 %}
+      {% if user.username %} {% set completion = completion + 20 %} {% endif %}
+      {% if user.email %} {% set completion = completion + 20 %} {% endif %}
+      {% if user.phone_number %} {% set completion = completion + 20 %} {% endif %}
+      {% if user.department %} {% set completion = completion + 20 %} {% endif %}
+      {% if user.address %} {% set completion = completion + 20 %} {% endif %}
+      <div class="profile-completion">
+        <p class="text-sm font-medium text-gray-600">Profile Completion</p>
+        <div class="progress-circle">
+          <svg width="80" height="80">
+            <circle class="circle-bg" cx="40" cy="40" r="36"></circle>
+            <circle class="circle-fg" cx="40" cy="40" r="36" stroke-dasharray="226.2" stroke-dashoffset="{{ (1 - completion / 100) * 226.2 }}"></circle>
+          </svg>
+          <div class="percentage">{{ completion }}%</div>
+        </div>
+      </div>
+      <!-- User Information -->
+      <dl class="profile-info">
+        <dt><i class="bx bx-envelope"></i> Email:</dt>
+        <dd>{{ user.email|default('N/A') }}</dd>
+        <dt><i class="bx bx-phone"></i> Phone Number:</dt>
+        <dd>{{ user.phone_number|default('N/A') }}</dd>
+        <dt><i class="bx bx-briefcase"></i> Department:</dt>
+        <dd>{{ user.department.name if user.department else 'N/A' }}</dd>
+        <dt><i class="bx bx-map"></i> Address:</dt>
+        <dd>{{ user.address|default('N/A') }}</dd>
+      </dl>
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        {% if user.role and user.role.name in ['Admin', 'Manager'] %}
+          {% if user.role.name == 'Manager' %}
+            <a href="{{ url_for('mydepartments.index', page=page|default(1)) }}" class="action-btn bg-gray-600 text-white hover:bg-gray-700">
+              <i class="bx bx-arrow-back"></i> Back to My Department
+            </a>
+          {% else %}
+            <a href="{{ url_for('users.index', page=page|default(1)) }}" class="action-btn bg-gray-600 text-white hover:bg-gray-700">
+              <i class="bx bx-arrow-back"></i> Back to Users
+            </a>
+          {% endif %}
+          <button class="action-btn bg-blue-600 text-white hover:bg-blue-700" data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id|default('') }}">
+            <i class="bx bx-edit"></i> Edit Profile
+          </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div class="modal fade modal-center" id="editUserModal{{ user.id|default('') }}" tabindex="-1">
+    <div class="modal-dialog">
+      <form method="POST" action="{{ url_for('users.update', user_id=user.id|default(''), page=page|default(1)) }}" enctype="multipart/form-data">
+        <input type="hidden" name="remove_image" id="removeImageInput{{ user.id|default('') }}" value="0">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Edit User</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Username</label>
+              <input type="text" class="form-control" name="username" value="{{ user.username|default('') }}" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" name="email" value="{{ user.email|default('') }}" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Password (leave blank to keep unchanged)</label>
+              <input type="password" class="form-control" name="password">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Phone Number</label>
+              <input type="text" class="form-control" name="phone_number" value="{{ user.phone_number|default('') }}">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Role</label>
+              <select class="form-select" name="role_id">
+                <option value="">None</option>
+                {% for role in roles|default([]) %}
+                <option value="{{ role.id }}" {% if user.role_id|default(None) == role.id %}selected{% endif %}>
+                  {{ role.name|default('N/A') }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Department</label>
+              <select class="form-select" name="department_id">
+                <option value="">None</option>
+                {% for department in departments|default([]) %}
+                <option value="{{ department.id }}" {% if user.department_id|default(None) == department.id %}selected{% endif %}>
+                  {{ department.name|default('N/A') }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Address</label>
+              <textarea class="form-control" name="address" rows="3">{{ user.address|default('') }}</textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Profile Picture</label>
+              <div class="image-upload-container"
+                ondragover="event.preventDefault(); this.classList.add('dragover');"
+                ondragleave="this.classList.remove('dragover');"
+                ondrop="event.preventDefault(); this.classList.remove('dragover'); handleImageDrop(event, 'imageInput{{ user.id|default('') }}', 'imagePreview{{ user.id|default('') }}');">
+                <div
+                  class="image-preview {% if not user.get_image_url()|default(None) %}image-preview-placeholder{% endif %}"
+                  id="imagePreview{{ user.id|default('') }}">
+                  {% if user.get_image_url()|default(None) %}
+                  <img src="{{ user.get_image_url() }}" alt="Profile Picture">
+                  {% endif %}
+                </div>
+                <label class="custom-file-label" for="imageInput{{ user.id|default('') }}">
+                  <i class="bx bx-upload"></i> Choose or Drop Image
+                </label>
+                <input type="file" class="custom-file-input" id="imageInput{{ user.id|default('') }}"
+                  name="image" accept="image/*">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Update</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete User Modal -->
+  <div class="modal fade" id="deleteUserModal{{ user.id|default('') }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title"><i class="bx bx-trash"></i> Confirm Delete</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to delete user <strong>{{ user.username|default('N/A') }}</strong>?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <form
+            action="{{ url_for('users.delete', user_id=user.id|default(''), page=page|default(1)) }}"
+            method="POST" class="d-inline">
+            <button type="submit" class="btn btn-danger">Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Cover Video Modal -->
+  <div class="modal fade video-modal" id="viewCoverModal{{ user.id|default('') }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Cover Video</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <video controls autoplay muted>
+            <source src="{{ url_for('static', filename='video/cover.mp4') }}" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- jQuery CDN (required for modals and image preview) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Bootstrap JS CDN (required for modals) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- JavaScript for image preview, drag-and-drop, and auto-open modal -->
+<script>
+  function handleImagePreview(inputId, previewId) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+
+    if (!input || !preview) return;
+
+    input.addEventListener('change', function () {
+      const file = this.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          preview.innerHTML = `<img src="${e.target.result}" alt="Profile Picture">`;
+          preview.classList.remove('image-preview-placeholder');
+          addRemoveButton(inputId, previewId);
+          document.getElementById(`removeImageInput${inputId.replace('imageInput', '')}`).value = '0';
+        };
+        reader.onerror = function () {
+          console.error('Error reading file');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  function handleImageDrop(event, inputId, previewId) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    const file = event.dataTransfer.files[0];
+
+    if (file && file.type.startsWith('image/')) {
+      input.files = event.dataTransfer.files;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        preview.innerHTML = `<img src="${e.target.result}" alt="Profile Picture">`;
+        preview.classList.remove('image-preview-placeholder');
+        addRemoveButton(inputId, previewId);
+        document.getElementById(`removeImageInput${inputId.replace('imageInput', '')}`).value = '0';
+      };
+      reader.onerror = function () {
+        console.error('Error reading dropped file');
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function addRemoveButton(inputId, previewId) {
+    const preview = document.getElementById(previewId);
+    const container = preview.parentElement;
+    let removeBtn = container.querySelector('.remove-image-btn');
+    if (!removeBtn) {
+      removeBtn = document.createElement('button');
+      removeBtn.className = 'remove-image-btn';
+      removeBtn.textContent = 'Remove Image';
+      removeBtn.type = 'button';
+      removeBtn.onclick = () => removeImage(inputId, previewId);
+      container.appendChild(removeBtn);
+    }
+  }
+
+  function removeImage(inputId, previewId) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    input.value = '';
+    preview.innerHTML = '';
+    preview.classList.add('image-preview-placeholder');
+    const removeBtn = preview.parentElement.querySelector('.remove-image-btn');
+    if (removeBtn) {
+      removeBtn.remove();
+    }
+    document.getElementById(`removeImageInput${inputId.replace('imageInput', '')}`).value = '1';
+  }
+
+  // Initialize image preview for Edit User modal
+  handleImagePreview('imageInput{{ user.id|default('') }}', 'imagePreview{{ user.id|default('') }}');
+
+  // Auto-open video modal after 5 seconds
+  $(document).ready(function () {
+    setTimeout(function () {
+      const videoModal = new bootstrap.Modal(document.getElementById('viewCoverModal{{ user.id|default('') }}'), {
+        keyboard: true,
+        backdrop: 'static'
+      });
+      videoModal.show();
+    }, 5000);
+  });
+</script>
+{% endblock %}

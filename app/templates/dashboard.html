@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboad.css') }}" />
+
+<div class="dashboard-container p-4">
+  <!-- Stat Cards -->
+  <div class="row g-4 mb-4">
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card">
+        <div class="stat-info"><h3>75</h3><span>Total of Contract</span></div>
+        <div class="stat-icon"><i class="fa-regular fa-calendar icon-blue"></i></div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card">
+        <div class="stat-info"><h3>124,551</h3><span>Total request</span></div>
+        <div class="stat-icon"><i class="fa-regular fa-heart icon-red"></i></div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card">
+        <div class="stat-info"><h3>400+</h3><span>Total Types</span></div>
+        <div class="stat-icon"><i class="fa-solid fa-stethoscope icon-green"></i></div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+      <div class="stat-card">
+        <div class="stat-info"><h3>$50,000</h3><span>Total Managers</span></div>
+        <div class="stat-icon"><i class="fa-solid fa-money-bill-wave icon-money"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Section -->
+  <div class="row g-4">
+    <!-- Monthly Report Bar Chart -->
+    <div class="col-lg-8">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-light fw-bold">
+          <i class="fa-solid fa-chart-column text-primary"></i> Monthly Report
+        </div>
+        <div class="card-body">
+          <canvas id="monthlyBarChart" height="120"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column (Weekly Report + Pie Chart) -->
+    <div class="col-lg-4 d-flex flex-column gap-4">
+      <!-- Consultant Contract Weekly Report -->
+      <div class="weekly-card shadow-sm">
+        <div class="card-top">
+          <i class="fa-solid fa-file-contract"></i>
+          <div>
+            <div>Consultant Contract Weekly Report</div>
+            <h3>1865</h3>
+          </div>
+        </div>
+        <div class="growth">
+          ↑ 2.69% <br><small>Since last month</small>
+        </div>
+        <canvas id="consultantWeeklyChart"></canvas>
+      </div>
+
+      <!-- Department Programs Pie Chart -->
+      <div class="card shadow-sm flex-fill">
+      <div class="card-header bg-light fw-bold">
+       <i class="fa-solid fa-chart-pie text-warning"></i> Department Programs
+      </div>
+     <div class="card-body d-flex justify-content-center align-items-center">
+       <canvas id="departmentPieChart"></canvas>
+     </div>
+    </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Monthly Report Bar Chart
+  const ctxBar = document.getElementById('monthlyBarChart').getContext('2d');
+  new Chart(ctxBar, {
+    type: 'bar',
+    data: {
+      labels: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+      datasets: [{
+        label: 'Requests',
+        data: [400, 450, 480, 500, 520, 550, 600, 650, 630, 610, 590, 620],
+        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1,
+        borderRadius: 5
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+
+  // Consultant Contract Weekly Report Chart
+  const ctxConsultant = document.getElementById('consultantWeeklyChart').getContext('2d');
+  new Chart(ctxConsultant, {
+    type: 'bar',
+    data: {
+      labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+      datasets: [{
+        label: "Contracts",
+        data: [12, 18, 9, 15, 20, 25, 10], // replace with backend
+        backgroundColor: [
+          "#3498db","#e67e22","#9b59b6","#e74c3c","#2ecc71","#1abc9c","#f1c40f"
+        ],
+        borderRadius: 4,
+        barThickness: 18,
+        maxBarThickness: 22
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: {
+        padding: { top: 5, bottom: 5, left: 5, right: 5 }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => items[0].label,
+            label: (context) => `${context.formattedValue} Contracts`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: "#fff" } },
+        y: { display: false }
+      }
+    }
+  });
+
+  
+// Department Programs Pie Chart
+  const departmentData = {{ department_data|tojson|default([]) }};
+  const ctxPie = document.getElementById('departmentPieChart').getContext('2d');
+  new Chart(ctxPie, {
+    type: 'pie',
+    data: {
+      labels: {{ pie_labels|tojson|default(['"No Departments"']) }},
+      datasets: [{
+        data: {{ pie_data|tojson|default([0]) }},
+        backgroundColor: [
+          "rgba(54, 162, 235, 0.7)",
+          "rgba(255, 206, 86, 0.7)",
+          "rgba(153, 102, 255, 0.7)",
+          "rgba(255, 99, 132, 0.7)",
+          "rgba(75, 192, 192, 0.7)",
+          "rgba(255, 159, 64, 0.7)"
+        ],
+        borderWidth: 2,
+        borderColor: "#fff"
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { usePointStyle: true } },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const index = context.dataIndex;
+              const dept = departmentData[index] || {};
+              const name = dept.name || 'No Departments';
+              const userCount = dept.user_count || 0;
+              const managers = dept.managers && dept.managers.length ? dept.managers.join(', ') : 'None';
+              const employees = dept.employees && dept.employees.length ? dept.employees.join(', ') : 'None';
+              return [
+                `${name}`,
+                `${name}: ${userCount} members`,
+                `Managers: ${managers}`,
+                `Employees: ${employees}`
+              ];
+            }
+          }
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}
+

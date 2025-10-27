@@ -1,0 +1,1081 @@
+{% extends "base.html" %}
+{% block title %}Update Contract{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/create.css') }}">
+
+<div class="container mt-4">
+    <div class="form-header">
+        <h1 class="text-center mb-0">Update Contract</h1>
+    </div>
+    <div class="form-card">
+        <nav class="mb-3">
+            <a href="{{ url_for('contracts.index') }}" class="btn btn-outline-primary">Back to Contract List</a>
+        </nav>
+        <form id="contractForm" action="{{ url_for('contracts.update', contract_id=form_data.id) }}" method="POST" class="needs-validation" novalidate>
+            <!-- Project & Contract Details -->
+            <div class="section-header">Project & Contract Details</div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="project_title" class="form-label">Project Title</label>
+                    <input type="text" class="form-control" id="project_title" name="project_title" value="{{ form_data.project_title | default('') }}" placeholder="e.g., Consultant for Budget Analysis" required>
+                    <div class="invalid-feedback">Please enter the project title.</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="output_description" class="form-label">Output Description</label>
+                    <input type="text" class="form-control" id="output_description" name="output_description" value="{{ form_data.output_description | default('') }}" placeholder="e.g., Budget Analysis on MAFF's Budget Allocation" required>
+                    <div class="invalid-feedback">Please enter the output description.</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="contract_number" class="form-label">Contract Number</label>
+                    <input type="text" class="form-control" id="contract_number" name="contract_number" value="{{ form_data.contract_number | default(default_contract_number) }}" placeholder="e.g., NGOF/2025-005" required pattern="NGOF/\d{4}-\d{3}">
+                    <div class="invalid-feedback">Please enter a valid contract number (e.g., NGOF/2025-005).</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="tax_percentage_select" class="form-label">Tax Percentage (%)</label>
+                    <div class="input-group">
+                        <select class="form-select" id="tax_percentage_select" name="tax_percentage_select" required onchange="toggleTaxPercentageInput()">
+                            <option value="0" {{ 'selected' if form_data.tax_percentage | default(15) == 0 }}>0</option>
+                            <option value="5" {{ 'selected' if form_data.tax_percentage | default(15) == 5 }}>5</option>
+                            <option value="10" {{ 'selected' if form_data.tax_percentage | default(15) == 10 }}>10</option>
+                            <option value="15" {{ 'selected' if form_data.tax_percentage | default(15) == 15 }}>15</option>
+                            <option value="20" {{ 'selected' if form_data.tax_percentage | default(15) == 20 }}>20</option>
+                            <option value="other" {{ 'selected' if form_data.tax_percentage | default(15) not in [0, 5, 10, 15, 20] }}>Other</option>
+                        </select>
+                        <div class="invalid-feedback">Please select a tax percentage.</div>
+                    </div>
+                    <div id="tax_percentage_custom_container" class="mt-2" style="display: {{ 'block' if form_data.tax_percentage | default(15) not in [0, 5, 10, 15, 20] else 'none' }};">
+                        <label for="tax_percentage" class="form-label">Custom Tax Percentage (%)</label>
+                        <input type="number" class="form-control" id="tax_percentage" name="tax_percentage" value="{{ form_data.tax_percentage | default('') if form_data.tax_percentage not in [0, 5, 10, 15, 20] else '' }}" min="0" max="20" step="0.01" placeholder="e.g., 7" {{ 'required' if form_data.tax_percentage | default(15) not in [0, 5, 10, 15, 20] }}>
+                        <div class="invalid-feedback">Please enter a valid tax percentage (0-20).</div>
+                    </div>
+                    <div id="deduct_tax_code_container" class="mt-2" style="display: {{ 'block' if form_data.tax_percentage | default(15) == 0 else 'none' }};">
+                        <label for="vat_organization_name" class="form-label">Name of Organization</label>
+                        <input type="text" class="form-control" id="vat_organization_name" name="vat_organization_name" value="{{ form_data.vat_organization_name | default('') }}" placeholder="e.g., The NGO Forum on Cambodia" maxlength="255" {{ 'required' if form_data.tax_percentage | default(15) == 0 }}>
+                        <div class="invalid-feedback">Please enter the name of the organization/company.</div>
+                        <label for="deduct_tax_code" class="form-label">VAT TIN</label>
+                        <input type="text" class="form-control" id="deduct_tax_code" name="deduct_tax_code" value="{{ form_data.deduct_tax_code | default('') }}" placeholder="e.g., K002-100054102" pattern="[A-Z0-9\-]+" maxlength="50" {{ 'required' if form_data.tax_percentage | default(15) == 0 }}>
+                        <small class="form-text text-muted">Enter the VAT TIN (uppercase letters, numbers, and hyphens only, max 50 characters).</small>
+                        <div class="invalid-feedback">Please enter a valid VAT TIN (uppercase letters, numbers, and hyphens only).</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Party A Information -->
+            <div class="section-header">Party A Information (At least one required)</div>
+            <div class="col-12" id="partyAContainer">
+                <label class="form-label">Party A Representatives</label>
+                {% for person in form_data.party_a_info | default([{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia', 'short_name': 'NGOF', 'registration_number': '#304 សជណ', 'registration_date': '07 March 2012'}]) %}
+                <div class="party-a-container mb-3 border p-3 rounded">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Select Party A</label>
+                            <select class="form-select party-a-select" name="party_a_select[]">
+                                <option value="" {{ 'selected' if not person.name }}>Select a Party A or enter manually</option>
+                                <option value="new" {{ 'selected' if person.name and person.name not in party_a_data.values() | map(attribute='name') | list }}>Enter new Party A</option>
+                                {% for person_data in party_a_data.values() %}
+                                <option value="{{ person_data.name }}" {{ 'selected' if person.name == person_data.name }}>{{ person_data.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="party_a_organization_{{ loop.index0 }}" class="form-label">Organization</label>
+                            <input type="text" class="form-control party-a-organization" id="party_a_organization_{{ loop.index0 }}" name="party_a_organization[]" value="{{ person.organization | default('The NGO Forum on Cambodia') }}" placeholder="e.g., The NGO Forum on Cambodia" pattern="[a-zA-Z\s\.,-]+" required>
+                            <div class="invalid-feedback">Please enter a valid organization (letters, spaces, commas, periods, hyphens only).</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="party_a_short_name_{{ loop.index0 }}" class="form-label">Short Name</label>
+                            <input type="text" class="form-control party-a-short-name" id="party_a_short_name_{{ loop.index0 }}" name="party_a_short_name[]" value="{{ person.short_name | default('NGOF') }}" placeholder="e.g., NGOF" pattern="[a-zA-Z0-9\s\-]*">
+                            <div class="invalid-feedback">Please enter a valid short name (letters, numbers, spaces, hyphens only).</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="party_a_name_{{ loop.index0 }}" class="form-label">Name</label>
+                            <input type="text" class="form-control party-a-name" id="party_a_name_{{ loop.index0 }}" name="party_a_name[]" value="{{ person.name | default('') }}" placeholder="e.g., Mr. SOEUNG Saroeun" pattern="[a-zA-Z\s\.]+" required>
+                            <div class="invalid-feedback">Please enter a valid name (letters, spaces, and periods only).</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="party_a_position_{{ loop.index0 }}" class="form-label">Position</label>
+                            <input type="text" class="form-control party-a-position" id="party_a_position_{{ loop.index0 }}" name="party_a_position[]" value="{{ person.position | default('') }}" placeholder="e.g., Executive Director" pattern="[a-zA-Z\s]+" required>
+                            <div class="invalid-feedback">Please enter a valid position (letters and spaces only).</div>
+                        </div>
+                        <div class="col-12">
+                            <label for="party_a_address_{{ loop.index0 }}" class="form-label">Address</label>
+                            <textarea class="form-control party-a-address" id="party_a_address_{{ loop.index0 }}" name="party_a_address[]" rows="3" placeholder="e.g., #9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia" required>{{ person.address | default('') }}</textarea>
+                            <div class="invalid-feedback">Please enter a valid address.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="party_a_registration_number_{{ loop.index0 }}" class="form-label">Registration Number</label>
+                            <input type="text" class="form-control party-a-registration-number" id="party_a_registration_number_{{ loop.index0 }}" name="party_a_registration_number[]" value="{{ person.registration_number | default('#304 សជណ') }}" placeholder="e.g., #304 សជណ" required>
+                            <div class="invalid-feedback">Please enter a valid registration number.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="party_a_registration_date_{{ loop.index0 }}" class="form-label">Registration Date</label>
+                            <input type="text" class="form-control party-a-registration-date" id="party_a_registration_date_{{ loop.index0 }}" name="party_a_registration_date[]" value="{{ person.registration_date | default('07 March 2012') }}" placeholder="e.g., 07 March 2012" required>
+                            <div class="invalid-feedback">Please enter a valid registration date.</div>
+                        </div>
+                        <div class="col-12">
+                            <button type="button" class="btn btn-danger btn-remove-party-a {{ 'd-none' if loop.first and (form_data.party_a_info | default([])) | length == 1 else '' }}">Remove</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="col-12">
+                <button type="button" class="btn btn-primary btn-add-party-a" onclick="addPartyAField()">Add Party A Representative</button>
+            </div>
+
+            <!-- Party A Signer Selection -->
+            <div class="section-header">Party A Signer</div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="party_a_signer" class="form-label">Select Party A Signer</label>
+                    <select class="form-select" id="party_a_signer" name="party_a_signer" required>
+                        <option value="" disabled {{ 'selected' if not form_data.party_a_signer }}>Select a signer</option>
+                        {% for person in form_data.party_a_info | default([{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia', 'short_name': 'NGOF', 'registration_number': '#304 សជណ', 'registration_date': '07 March 2012'}]) %}
+                        <option value="{{ person.name }}" {{ 'selected' if form_data.party_a_signer == person.name }}>{{ person.name }} ({{ person.organization }})</option>
+                        {% endfor %}
+                    </select>
+                    <div class="invalid-feedback">Please select a Party A signer.</div>
+                </div>
+            </div>
+
+            <!-- Party B Information -->
+            <div class="section-header">Party B Information</div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="party_b_select" class="form-label">Party B Signature Name</label>
+                    <select class="form-select" id="party_b_select" name="party_b_select" onchange="handlePartyBSelect(this)">
+                        <option value="" {{ 'selected' if not form_data.party_b_select }}>Select Party B or enter new name</option>
+                        <option value="new" {{ 'selected' if form_data.party_b_select == 'new' }}>Enter new name</option>
+                        {% for name in party_b_data.values() %}
+                        <option value="{{ name.original_name }}" {{ 'selected' if form_data.party_b_signature_name == name.original_name }}>{{ name.original_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="invalid-feedback">Please select or enter a Party B name.</div>
+                </div>
+                <div class="col-md-6" id="party_b_new_name_container" style="display: {{ 'block' if form_data.party_b_select == 'new' else 'none' }};">
+                    <label for="party_b_signature_name" class="form-label">New Party B Signature Name</label>
+                    <input type="text" class="form-control" id="party_b_signature_name" name="party_b_signature_name" value="{{ form_data.party_b_signature_name if form_data.party_b_select == 'new' else '' }}" placeholder="e.g., Mr. SEAN Bunrith" pattern="[a-zA-Z\s\.]+" {{ 'required' if form_data.party_b_select == 'new' }}>
+                    <div class="invalid-feedback">Please enter a valid name (letters, spaces, and periods only).</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="party_b_position" class="form-label">Party B Position</label>
+                    <input type="text" class="form-control" id="party_b_position" name="party_b_position" value="{{ form_data.party_b_position | default('Freelance Consultant') }}" placeholder="e.g., Freelance Consultant" pattern="[a-zA-Z\s]+">
+                    <div class="invalid-feedback">Please enter a valid position (letters and spaces only).</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="party_b_phone" class="form-label">Party B Phone</label>
+                    <input type="tel" class="form-control" id="party_b_phone" name="party_b_phone" value="{{ form_data.party_b_phone | default('') }}" placeholder="e.g., 012 845 091 or +855 12 845 091" pattern="\+?\d{1,4}([-.\s]?\d{1,4}){2,3}">
+                    <div class="invalid-feedback">Please enter a valid phone number (e.g., 012 845 091 or +855 12 845 091).</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="party_b_email" class="form-label">Party B Email</label>
+                    <input type="email" class="form-control" id="party_b_email" name="party_b_email" value="{{ form_data.party_b_email | default('') }}" placeholder="e.g., Seanbunrith@gmail.com">
+                    <div class="invalid-feedback">Please enter a valid email address.</div>
+                </div>
+                <div class="col-12">
+                    <label for="party_b_address" class="form-label">Party B Address</label>
+                    <textarea class="form-control" id="party_b_address" name="party_b_address" rows="3" placeholder="e.g., # F22 st. 113 Trapaeng Krosang, Porsenchey, Phnom Penh">{{ form_data.party_b_address | default('') }}</textarea>
+                </div>
+            </div>
+
+            <!-- Focal Person Information -->
+            <div class="section-header">Focal Person Information</div>
+            <div class="col-12" id="focalPersonContainer">
+                <label class="form-label">Focal Persons (At least one required)</label>
+                {% for person in form_data.focal_person_info | default([{'name': '', 'position': '', 'phone': '', 'email': ''}]) %}
+                <div class="focal-person-container mb-3 border p-3 rounded">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Select Focal Person</label>
+                            <select class="form-select focal-person-select" name="focal_person_select[]">
+                                <option value="" {{ 'selected' if not person.name }}>Select a focal person or enter manually</option>
+                                <option value="new" {{ 'selected' if person.name and person.name not in focal_person_data.values() | map(attribute='name') | list }}>Enter new focal person</option>
+                                {% for person_data in focal_person_data.values() %}
+                                <option value="{{ person_data.name }}" {{ 'selected' if person.name == person_data.name }}>{{ person_data.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="focal_person_name_{{ loop.index0 }}" class="form-label">Name</label>
+                            <input type="text" class="form-control focal-person-name" id="focal_person_name_{{ loop.index0 }}" name="focal_person_name[]" value="{{ person.name | default('') }}" placeholder="e.g., Mr. Mar Sophal" pattern="[a-zA-Z\s\.]+" required>
+                            <div class="invalid-feedback">Please enter a valid name (letters, spaces, and periods only).</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="focal_person_position_{{ loop.index0 }}" class="form-label">Position</label>
+                            <input type="text" class="form-control focal-person-position" id="focal_person_position_{{ loop.index0 }}" name="focal_person_position[]" value="{{ person.position | default('') }}" placeholder="e.g., PALI Program Manager" pattern="[a-zA-Z\s]+" required>
+                            <div class="invalid-feedback">Please enter a valid position (letters and spaces only).</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="focal_person_phone_{{ loop.index0 }}" class="form-label">Phone</label>
+                            <input type="tel" class="form-control focal-person-phone" id="focal_person_phone_{{ loop.index0 }}" name="focal_person_phone[]" value="{{ person.phone | default('') }}" placeholder="e.g., 012 845 091 or +855 12 845 091" pattern="\+?\d{1,4}([-.\s]?\d{1,4}){2,3}" required>
+                            <div class="invalid-feedback">Please enter a valid phone number (e.g., 012 845 091 or +855 12 845 091).</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="focal_person_email_{{ loop.index0 }}" class="form-label">Email</label>
+                            <input type="email" class="form-control focal-person-email" id="focal_person_email_{{ loop.index0 }}" name="focal_person_email[]" value="{{ person.email | default('') }}" placeholder="e.g., sophal@ngoforum.org.kh" required>
+                            <div class="invalid-feedback">Please enter a valid email address.</div>
+                        </div>
+                        <div class="col-12">
+                            <button type="button" class="btn btn-danger btn-remove-focal-person {{ 'd-none' if loop.first and (form_data.focal_person_info | default([])) | length == 1 else '' }}">Remove</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="col-12">
+                <button type="button" class="btn btn-primary btn-add-focal-person" onclick="addFocalPersonField()">Add Focal Person</button>
+            </div>
+
+            <!-- Agreement Details -->
+            <div class="section-header">Agreement Details</div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="agreement_start_date" class="form-label">Agreement Start Date</label>
+                    <div class="input-group">
+                        <input type="date" class="form-control" id="agreement_start_date" name="agreement_start_date" value="{{ form_data.agreement_start_date | default('') }}" required aria-describedby="agreement_start_date_icon">
+                        <span class="input-group-text" id="agreement_start_date_icon">
+                            <i class="bi bi-calendar"></i>
+                        </span>
+                        <div class="invalid-feedback">Please select a start date.</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label for="agreement_end_date" class="form-label">Agreement End Date</label>
+                    <div class="input-group">
+                        <input type="date" class="form-control" id="agreement_end_date" name="agreement_end_date" value="{{ form_data.agreement_end_date | default('') }}" required aria-describedby="agreement_end_date_icon">
+                        <span class="input-group-text" id="agreement_end_date_icon">
+                            <i class="bi bi-calendar"></i>
+                        </span>
+                        <div class="invalid-feedback">Please select an end date.</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label for="total_fee_usd" class="form-label">Total Fee USD (Gross)</label>
+                    <input type="number" class="form-control" id="total_fee_usd" name="total_fee_usd" value="{{ form_data.total_fee_usd | default('0.00') }}" min="0" step="0.01" required>
+                    <div class="invalid-feedback">Please enter a valid total fee (non-negative).</div>
+                </div>
+                <div class="col-md-12">
+                    <label for="total_fee_words" class="form-label">Total Fee in Words</label>
+                    <input type="text" class="form-control" id="total_fee_words" name="total_fee_words" value="{{ form_data.total_fee_words | default('') }}" readonly>
+                    <div class="invalid-feedback">Total fee in words will be auto-generated.</div>
+                </div>
+                <div class="col-12" id="installmentContainer">
+                    <label class="form-label">Payment Installments (At least one required)</label>
+                    {% for installment in form_data.payment_installments | default([{'description': '', 'deliverables': '', 'dueDate': '', 'organization': ''}]) %}
+                    <div class="installment-container mb-3 border p-3 rounded">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Installment Description</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control installment-desc" name="paymentInstallmentDesc[]" value="{{ installment.description | default('') }}" placeholder="e.g., Installment #1 (40%)" readonly>
+                                    <select class="form-select installment-percentage" name="paymentInstallmentPercentage[]" required>
+                                        <option value="" disabled {{ 'selected' if not installment.description }}>Select Percentage</option>
+                                        {% for percentage in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] %}
+                                        <option value="{{ percentage }}" {{ 'selected' if installment.description and percentage | string in installment.description }}>{{ percentage }}%</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="button" class="btn btn-danger btn-remove-installment {{ 'd-none' if loop.first and (form_data.payment_installments | default([])) | length == 1 else '' }}">Remove</button>
+                                    <div class="invalid-feedback">Please select a percentage.</div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Paying Organization</label>
+                                <select class="form-select installment-org" name="paymentInstallmentOrg[]" required>
+                                    <option value="" disabled {{ 'selected' if not installment.organization }}>Select organization</option>
+                                    {% for org in form_data.party_a_info | map(attribute='organization') | unique | list %}
+                                    <option value="{{ org }}" {{ 'selected' if installment.organization == org }}>{{ org }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">Please select a paying organization.</div>
+                            </div>
+                            <div class="col-12">
+                                <label for="paymentInstallmentDeliverables_{{ loop.index0 }}" class="form-label">Deliverables (one per line)</label>
+                                <textarea class="form-control" id="paymentInstallmentDeliverables_{{ loop.index0 }}" name="paymentInstallmentDeliverables[]" rows="4" required>{{ installment.deliverables | default('') }}</textarea>
+                                <div class="invalid-feedback">Please enter deliverables for this installment.</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Due Date</label>
+                                <div class="input-group">
+                                    <input type="date" class="form-control" name="paymentInstallmentDueDate[]" value="{{ installment.dueDate | default('') }}" required aria-describedby="paymentInstallmentDueDateIcon_{{ loop.index0 }}">
+                                    <span class="input-group-text" id="paymentInstallmentDueDateIcon_{{ loop.index0 }}">
+                                        <i class="bi bi-calendar"></i>
+                                    </span>
+                                    <div class="invalid-feedback">Please select a due date.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="col-12">
+                    <button type="button" class="btn btn-primary btn-add-installment" onclick="addInstallmentField()">Add Payment Installment</button>
+                </div>
+            </div>
+
+            <!-- Custom Article Sentences -->
+            <div class="section-header">Custom Article Sentences (Optional)</div>
+            <div class="col-12" id="articleContainer">
+                <div class="row g-3 article-container mb-2 d-none">
+                    <div class="col-md-4">
+                        <label class="form-label">Article Number</label>
+                        <select class="form-select" name="articleNumber[]">
+                            {% for i in range(1, article_titles|length + 1) %}
+                            <option value="{{ i }}">ARTICLE {{ i }}: {{ article_titles[i-1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">Custom Sentence</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="customSentence[]" placeholder="e.g., Additional requirements for this article...">
+                            <button type="button" class="btn btn-danger btn-remove-article">Remove</button>
+                        </div>
+                    </div>
+                </div>
+                {% for article in form_data.articles | default([]) %}
+                <div class="row g-3 article-container mb-2">
+                    <div class="col-md-4">
+                        <label class="form-label">Article Number</label>
+                        <select class="form-select" name="articleNumber[]">
+                            {% for i in range(1, article_titles|length + 1) %}
+                            <option value="{{ i }}" {{ 'selected' if article.article_number == i | string }}>ARTICLE {{ i }}: {{ article_titles[i-1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">Custom Sentence</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="customSentence[]" value="{{ article.custom_sentence | default('') }}" placeholder="e.g., Additional requirements for this article...">
+                            <button type="button" class="btn btn-danger btn-remove-article">Remove</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="col-12">
+                <button type="button" class="btn btn-primary btn-add-article" onclick="addArticleField()">Add Custom Article Sentence</button>
+            </div>
+
+            <!-- Signatures -->
+            <div class="section-header">Signatures</div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="party_b_signature_name_confirm" class="form-label">Party B Signature Name (Confirm)</label>
+                    <input type="text" class="form-control" id="party_b_signature_name_confirm" name="party_b_signature_name_confirm" value="{{ form_data.party_b_signature_name_confirm | default(form_data.party_b_signature_name) }}" required pattern="[a-zA-Z\s\.]+">
+                    <div class="invalid-feedback">Please confirm Party B signature name (letters, spaces, and periods only).</div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-primary">Update Contract</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const partyAData = {{ party_a_data | tojson | safe }};
+    const partyBData = {{ party_b_data | tojson | safe }};
+    const focalPersonData = {{ focal_person_data | tojson | safe }};
+
+    function numberToWords(num) {
+        if (!num || isNaN(num) || num < 0) return '';
+
+        const single = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+        const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+        const thousands = ['', 'Thousand', 'Million', 'Billion'];
+
+        function convertChunk(n) {
+            let words = '';
+            if (n >= 100) {
+                words += single[Math.floor(n / 100)] + ' Hundred';
+                n %= 100;
+                if (n > 0) words += ' ';
+            }
+            if (n >= 20) {
+                words += tens[Math.floor(n / 10)];
+                n %= 10;
+                if (n > 0) words += ' ';
+            }
+            if (n >= 10 && n < 20) {
+                words += teens[n - 10];
+            } else if (n > 0 && n < 10) {
+                words += single[n];
+            }
+            return words;
+        }
+
+        let words = '';
+        let chunkCount = 0;
+
+        let wholeNum = Math.floor(num);
+        while (wholeNum > 0) {
+            let chunk = wholeNum % 1000;
+            if (chunk > 0) {
+                let chunkWords = convertChunk(chunk);
+                if (chunkWords) {
+                    words = chunkWords + (thousands[chunkCount] ? ' ' + thousands[chunkCount] : '') + (words ? ' ' + words : '');
+                }
+            }
+            wholeNum = Math.floor(wholeNum / 1000);
+            chunkCount++;
+        }
+
+        let decimal = Math.round((num - Math.floor(num)) * 100);
+        if (decimal > 0) {
+            words += words ? ' and ' : '';
+            words += convertChunk(decimal) + ' Cents';
+        }
+
+        return words ? words + ' US Dollars only' : 'Zero US Dollars only';
+    }
+
+    function toggleTaxPercentageInput() {
+        const taxSelect = document.getElementById('tax_percentage_select');
+        const taxCustomContainer = document.getElementById('tax_percentage_custom_container');
+        const taxInput = document.getElementById('tax_percentage');
+        const deductTaxCodeContainer = document.getElementById('deduct_tax_code_container');
+        const deductTaxCodeInput = document.getElementById('deduct_tax_code');
+        const vatOrgInput = document.getElementById('vat_organization_name');
+
+        if (taxSelect.value === 'other') {
+            taxCustomContainer.style.display = 'block';
+            taxInput.required = true;
+        } else {
+            taxCustomContainer.style.display = 'none';
+            taxInput.required = false;
+            taxInput.value = '';
+        }
+
+        const isZeroTax = taxSelect.value === '0';
+        deductTaxCodeContainer.style.display = isZeroTax ? 'block' : 'none';
+        deductTaxCodeInput.required = isZeroTax;
+        vatOrgInput.required = isZeroTax;
+        if (!isZeroTax) {
+            deductTaxCodeInput.value = '';
+            vatOrgInput.value = '';
+        }
+    }
+
+    function handlePartyBSelect(select) {
+        const newNameContainer = document.getElementById('party_b_new_name_container');
+        const newNameInput = document.getElementById('party_b_signature_name');
+        const confirmInput = document.getElementById('party_b_signature_name_confirm');
+        const fields = {
+            'party_b_position': document.getElementById('party_b_position'),
+            'party_b_phone': document.getElementById('party_b_phone'),
+            'party_b_email': document.getElementById('party_b_email'),
+            'party_b_address': document.getElementById('party_b_address')
+        };
+
+        if (select.value === 'new') {
+            newNameContainer.style.display = 'block';
+            newNameInput.required = true;
+            confirmInput.value = newNameInput.value;
+            Object.values(fields).forEach(field => field.value = '');
+        } else {
+            newNameContainer.style.display = 'none';
+            newNameInput.required = false;
+            newNameInput.value = '';
+            if (select.value) {
+                const normalizedName = select.value.toLowerCase();
+                const data = partyBData[normalizedName];
+                fields.party_b_position.value = data ? data.position : 'Freelance Consultant';
+                fields.party_b_phone.value = data ? data.phone : '';
+                fields.party_b_email.value = data ? data.email : '';
+                fields.party_b_address.value = data ? data.address : '';
+                confirmInput.value = select.value;
+            } else {
+                Object.values(fields).forEach(field => field.value = '');
+                confirmInput.value = '';
+            }
+        }
+    }
+
+    function populatePartyA(select) {
+        const container = select.closest('.party-a-container');
+        const organizationInput = container.querySelector('.party-a-organization');
+        const shortNameInput = container.querySelector('.party-a-short-name');
+        const nameInput = container.querySelector('.party-a-name');
+        const positionInput = container.querySelector('.party-a-position');
+        const addressInput = container.querySelector('.party-a-address');
+        const regNumberInput = container.querySelector('.party-a-registration-number');
+        const regDateInput = container.querySelector('.party-a-registration-date');
+
+        const selectedValue = select.value;
+        if (selectedValue === 'new' || !selectedValue) {
+            organizationInput.value = 'The NGO Forum on Cambodia';
+            shortNameInput.value = 'NGOF';
+            nameInput.value = '';
+            positionInput.value = '';
+            addressInput.value = '';
+            regNumberInput.value = '#304 សជណ';
+            regDateInput.value = '07 March 2012';
+            nameInput.required = selectedValue === 'new';
+        } else {
+            const normalizedName = selectedValue.toLowerCase();
+            const person = partyAData[normalizedName];
+            if (person) {
+                organizationInput.value = person.organization || 'The NGO Forum on Cambodia';
+                shortNameInput.value = person.short_name || 'NGOF';
+                nameInput.value = person.name || '';
+                positionInput.value = person.position || '';
+                addressInput.value = person.address || '';
+                regNumberInput.value = person.registration_number || '#304 សជណ';
+                regDateInput.value = person.registration_date || '07 March 2012';
+                nameInput.required = true;
+            } else {
+                organizationInput.value = 'The NGO Forum on Cambodia';
+                shortNameInput.value = 'NGOF';
+                nameInput.value = '';
+                positionInput.value = '';
+                addressInput.value = '';
+                regNumberInput.value = '#304 សជណ';
+                regDateInput.value = '07 March 2012';
+                nameInput.required = false;
+            }
+        }
+        updatePartyASignerOptions();
+        updateOrgOptions();
+    }
+
+    function populateFocalPerson(select) {
+        const container = select.closest('.focal-person-container');
+        const nameInput = container.querySelector('.focal-person-name');
+        const positionInput = container.querySelector('.focal-person-position');
+        const phoneInput = container.querySelector('.focal-person-phone');
+        const emailInput = container.querySelector('.focal-person-email');
+
+        const selectedValue = select.value;
+        if (selectedValue === 'new' || !selectedValue) {
+            nameInput.value = '';
+            positionInput.value = '';
+            phoneInput.value = '';
+            emailInput.value = '';
+            nameInput.required = selectedValue === 'new';
+        } else {
+            const normalizedName = selectedValue.toLowerCase();
+            const person = focalPersonData[normalizedName];
+            if (person) {
+                nameInput.value = person.name;
+                positionInput.value = person.position;
+                phoneInput.value = person.phone;
+                emailInput.value = person.email;
+                nameInput.required = true;
+            } else {
+                nameInput.value = '';
+                positionInput.value = '';
+                phoneInput.value = '';
+                emailInput.value = '';
+                nameInput.required = false;
+            }
+        }
+    }
+
+    function updatePartyASignerOptions() {
+        const partyAEntries = Array.from(document.querySelectorAll('.party-a-container')).map(container => {
+            const name = container.querySelector('.party-a-name').value.trim();
+            const org = container.querySelector('.party-a-organization').value.trim();
+            return { name, org };
+        }).filter(entry => entry.name && entry.org);
+
+        const signerSelect = document.getElementById('party_a_signer');
+        const currentValue = signerSelect.value;
+
+        signerSelect.innerHTML = '<option value="" disabled>Select a signer</option>';
+
+        partyAEntries.forEach(entry => {
+            const option = document.createElement('option');
+            option.value = entry.name;
+            option.text = `${entry.name} (${entry.org})`;
+            if (entry.name === currentValue) option.selected = true;
+            signerSelect.appendChild(option);
+        });
+
+        if (!partyAEntries.some(e => e.name === currentValue) && partyAEntries.length > 0) {
+            signerSelect.value = partyAEntries[0].name;
+        } else if (!partyAEntries.length) {
+            signerSelect.value = '';
+        }
+    }
+
+    function updateOrgOptions() {
+        const orgsSet = new Set(Array.from(document.querySelectorAll('.party-a-organization')).map(input => input.value.trim()).filter(v => v));
+        const selects = document.querySelectorAll('.installment-org');
+        selects.forEach(select => {
+            const currentValue = select.value;
+            select.innerHTML = '<option value="" disabled>Select organization</option>';
+            orgsSet.forEach(org => {
+                const option = document.createElement('option');
+                option.value = org;
+                option.text = org;
+                select.appendChild(option);
+            });
+            select.value = orgsSet.has(currentValue) ? currentValue : '';
+            select.required = true;
+        });
+    }
+
+    function updateInstallmentDescriptions() {
+        const containers = document.querySelectorAll('.installment-container');
+        containers.forEach((container, index) => {
+            const select = container.querySelector('.installment-percentage');
+            const descInput = container.querySelector('.installment-desc');
+            const percentage = select.value ? `${select.value}%` : '';
+            descInput.value = `Installment #${index + 1} (${percentage})`;
+        });
+    }
+
+    function assignPercentages() {
+        const containers = document.querySelectorAll('.installment-container');
+        const count = containers.length;
+        const availablePercentages = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+        let percentages = [];
+
+        let currentPercentages = Array.from(containers).map(container => {
+            const select = container.querySelector('.installment-percentage');
+            return parseFloat(select.value) || 0;
+        });
+        let currentTotal = currentPercentages.reduce((sum, val) => sum + val, 0);
+
+        if (Math.abs(currentTotal - 100) < 0.01 && currentPercentages.every(p => availablePercentages.includes(p))) {
+            percentages = currentPercentages;
+        } else {
+            const base = Math.floor(100 / count);
+            percentages = Array(count).fill(base);
+            let remainder = 100 - base * count;
+            for (let i = 0; i < remainder; i++) {
+                percentages[i] += 1;
+            }
+            percentages = percentages.map(p => {
+                return availablePercentages.reduce((prev, curr) =>
+                    Math.abs(curr - p) < Math.abs(prev - p) ? curr : prev
+                );
+            });
+            let total = percentages.reduce((sum, val) => sum + val, 0);
+            if (Math.abs(total - 100) > 0.01) {
+                const diff = 100 - total;
+                const lastIndex = percentages.length - 1;
+                const newLast = percentages[lastIndex] + diff;
+                percentages[lastIndex] = availablePercentages.reduce((prev, curr) =>
+                    Math.abs(curr - newLast) < Math.abs(prev - newLast) ? curr : prev
+                );
+                total = percentages.reduce((sum, val) => sum + val, 0);
+                if (Math.abs(total - 100) > 0.01) {
+                    percentages[0] += 100 - total;
+                    percentages[0] = availablePercentages.reduce((prev, curr) =>
+                        Math.abs(curr - percentages[0]) < Math.abs(prev - percentages[0]) ? curr : prev
+                    );
+                }
+            }
+        }
+
+        containers.forEach((container, index) => {
+            const select = container.querySelector('.installment-percentage');
+            select.value = percentages[index] || availablePercentages[0];
+        });
+
+        updateInstallmentDescriptions();
+    }
+
+    function addPartyAField() {
+        const container = document.getElementById('partyAContainer');
+        const firstPartyA = container.querySelector('.party-a-container');
+        const newPartyA = firstPartyA.cloneNode(true);
+
+        const timestamp = Date.now();
+
+        newPartyA.querySelector('.party-a-select').value = '';
+        newPartyA.querySelector('.party-a-organization').value = 'The NGO Forum on Cambodia';
+        newPartyA.querySelector('.party-a-short-name').value = 'NGOF';
+        newPartyA.querySelector('.party-a-name').value = '';
+        newPartyA.querySelector('.party-a-position').value = '';
+        newPartyA.querySelector('.party-a-address').value = '';
+        newPartyA.querySelector('.party-a-registration-number').value = '#304 សជណ';
+        newPartyA.querySelector('.party-a-registration-date').value = '07 March 2012';
+
+        newPartyA.querySelector('.party-a-organization').id = `party_a_organization_${timestamp}`;
+        newPartyA.querySelector('label[for^="party_a_organization"]').setAttribute('for', `party_a_organization_${timestamp}`);
+        newPartyA.querySelector('.party-a-short-name').id = `party_a_short_name_${timestamp}`;
+        newPartyA.querySelector('label[for^="party_a_short_name"]').setAttribute('for', `party_a_short_name_${timestamp}`);
+        newPartyA.querySelector('.party-a-name').id = `party_a_name_${timestamp}`;
+        newPartyA.querySelector('label[for^="party_a_name"]').setAttribute('for', `party_a_name_${timestamp}`);
+        newPartyA.querySelector('.party-a-position').id = `party_a_position_${timestamp}`;
+        newPartyA.querySelector('label[for^="party_a_position"]').setAttribute('for', `party_a_position_${timestamp}`);
+        newPartyA.querySelector('.party-a-address').id = `party_a_address_${timestamp}`;
+        newPartyA.querySelector('label[for^="party_a_address"]').setAttribute('for', `party_a_address_${timestamp}`);
+        newPartyA.querySelector('.party-a-registration-number').id = `party_a_registration_number_${timestamp}`;
+        newPartyA.querySelector('label[for^="party_a_registration_number"]').setAttribute('for', `party_a_registration_number_${timestamp}`);
+        newPartyA.querySelector('.party-a-registration-date').id = `party_a_registration_date_${timestamp}`;
+        newPartyA.querySelector('label[for^="party_a_registration_date"]').setAttribute('for', `party_a_registration_date_${timestamp}`);
+
+        const removeButton = newPartyA.querySelector('.btn-remove-party-a');
+        removeButton.classList.remove('d-none');
+
+        newPartyA.querySelector('.party-a-select').addEventListener('change', function() {
+            populatePartyA(this);
+        });
+        removeButton.addEventListener('click', function() {
+            newPartyA.remove();
+            updatePartyARemoveButtons();
+            updatePartyASignerOptions();
+            updateOrgOptions();
+        });
+
+        container.appendChild(newPartyA);
+        updatePartyARemoveButtons();
+        updatePartyASignerOptions();
+        updateOrgOptions();
+    }
+
+    function updatePartyARemoveButtons() {
+        const container = document.getElementById('partyAContainer');
+        const partyAs = container.querySelectorAll('.party-a-container');
+        if (partyAs.length === 1) {
+            partyAs[0].querySelector('.btn-remove-party-a').classList.add('d-none');
+        } else {
+            partyAs.forEach(partyA => {
+                partyA.querySelector('.btn-remove-party-a').classList.remove('d-none');
+            });
+        }
+    }
+
+    function addFocalPersonField() {
+        const container = document.getElementById('focalPersonContainer');
+        const firstFocalPerson = container.querySelector('.focal-person-container');
+        const newFocalPerson = firstFocalPerson.cloneNode(true);
+
+        const timestamp = Date.now();
+
+        newFocalPerson.querySelector('.focal-person-select').value = '';
+        newFocalPerson.querySelector('.focal-person-name').value = '';
+        newFocalPerson.querySelector('.focal-person-position').value = '';
+        newFocalPerson.querySelector('.focal-person-phone').value = '';
+        newFocalPerson.querySelector('.focal-person-email').value = '';
+
+        newFocalPerson.querySelector('.focal-person-name').id = `focal_person_name_${timestamp}`;
+        newFocalPerson.querySelector('label[for^="focal_person_name"]').setAttribute('for', `focal_person_name_${timestamp}`);
+        newFocalPerson.querySelector('.focal-person-position').id = `focal_person_position_${timestamp}`;
+        newFocalPerson.querySelector('label[for^="focal_person_position"]').setAttribute('for', `focal_person_position_${timestamp}`);
+        newFocalPerson.querySelector('.focal-person-phone').id = `focal_person_phone_${timestamp}`;
+        newFocalPerson.querySelector('label[for^="focal_person_phone"]').setAttribute('for', `focal_person_phone_${timestamp}`);
+        newFocalPerson.querySelector('.focal-person-email').id = `focal_person_email_${timestamp}`;
+        newFocalPerson.querySelector('label[for^="focal_person_email"]').setAttribute('for', `focal_person_email_${timestamp}`);
+
+        const removeButton = newFocalPerson.querySelector('.btn-remove-focal-person');
+        removeButton.classList.remove('d-none');
+
+        newFocalPerson.querySelector('.focal-person-select').addEventListener('change', function() {
+            populateFocalPerson(this);
+        });
+        removeButton.addEventListener('click', function() {
+            newFocalPerson.remove();
+            updateFocalPersonRemoveButtons();
+        });
+
+        container.appendChild(newFocalPerson);
+        updateFocalPersonRemoveButtons();
+    }
+
+    function updateFocalPersonRemoveButtons() {
+        const container = document.getElementById('focalPersonContainer');
+        const focalPersons = container.querySelectorAll('.focal-person-container');
+        if (focalPersons.length === 1) {
+            focalPersons[0].querySelector('.btn-remove-focal-person').classList.add('d-none');
+        } else {
+            focalPersons.forEach(person => {
+                person.querySelector('.btn-remove-focal-person').classList.remove('d-none');
+            });
+        }
+    }
+
+    function addInstallmentField() {
+        const container = document.getElementById('installmentContainer');
+        const firstInstallment = container.querySelector('.installment-container');
+        const newInstallment = firstInstallment.cloneNode(true);
+
+        const timestamp = Date.now();
+
+        newInstallment.querySelector('input[name="paymentInstallmentDesc[]"]').value = '';
+        newInstallment.querySelector('textarea[name="paymentInstallmentDeliverables[]"]').value = '';
+        newInstallment.querySelector('input[name="paymentInstallmentDueDate[]"]').value = '';
+        newInstallment.querySelector('select[name="paymentInstallmentPercentage[]"]').value = '';
+        newInstallment.querySelector('select[name="paymentInstallmentOrg[]"]').value = '';
+
+        newInstallment.querySelector('textarea').id = `paymentInstallmentDeliverables_${timestamp}`;
+        newInstallment.querySelector('label[for^="paymentInstallmentDeliverables"]').setAttribute('for', `paymentInstallmentDeliverables_${timestamp}`);
+        newInstallment.querySelector('input[name="paymentInstallmentDueDate[]"]').setAttribute('aria-describedby', `paymentInstallmentDueDateIcon_${timestamp}`);
+        newInstallment.querySelector('.input-group-text').id = `paymentInstallmentDueDateIcon_${timestamp}`;
+
+        const removeButton = newInstallment.querySelector('.btn-remove-installment');
+        removeButton.classList.remove('d-none');
+
+        removeButton.addEventListener('click', function () {
+            newInstallment.remove();
+            updateRemoveButtons();
+            assignPercentages();
+        });
+
+        newInstallment.querySelector('.installment-percentage').addEventListener('change', updateInstallmentDescriptions);
+
+        const dateInput = newInstallment.querySelector('input[type="date"]');
+        const calendarIcon = newInstallment.querySelector('.input-group-text');
+        dateInput.addEventListener('click', function () {
+            this.showPicker();
+        });
+        calendarIcon.addEventListener('click', function () {
+            dateInput.focus();
+            dateInput.showPicker();
+        });
+
+        container.appendChild(newInstallment);
+        updateRemoveButtons();
+        assignPercentages();
+        updateOrgOptions();
+    }
+
+    function updateRemoveButtons() {
+        const container = document.getElementById('installmentContainer');
+        const installments = container.querySelectorAll('.installment-container');
+        if (installments.length === 1) {
+            installments[0].querySelector('.btn-remove-installment').classList.add('d-none');
+        } else {
+            installments.forEach(installment => {
+                installment.querySelector('.btn-remove-installment').classList.remove('d-none');
+            });
+        }
+    }
+
+    function addArticleField() {
+        const container = document.getElementById('articleContainer');
+        const template = container.querySelector('.article-container.d-none');
+        const newArticle = template.cloneNode(true);
+
+        newArticle.classList.remove('d-none');
+        newArticle.querySelector('input').value = '';
+        newArticle.querySelector('select').selectedIndex = 0;
+
+        newArticle.querySelector('.btn-remove-article').addEventListener('click', function () {
+            newArticle.remove();
+        });
+
+        container.appendChild(newArticle);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const dateInputs = document.querySelectorAll('input[type="date"]');
+        dateInputs.forEach(input => {
+            input.addEventListener('click', function () {
+                this.showPicker();
+            });
+            const calendarIcon = input.parentElement.querySelector('.input-group-text');
+            if (calendarIcon) {
+                calendarIcon.addEventListener('click', function () {
+                    input.focus();
+                    input.showPicker();
+                });
+            }
+        });
+
+        document.getElementById('total_fee_usd').addEventListener('input', function () {
+            const totalFeeUSD = parseFloat(this.value);
+            const totalFeeWordsInput = document.getElementById('total_fee_words');
+            totalFeeWordsInput.value = numberToWords(totalFeeUSD);
+        });
+
+        document.getElementById('party_b_select').addEventListener('change', function () {
+            handlePartyBSelect(this);
+        });
+
+        document.getElementById('party_b_signature_name').addEventListener('input', function () {
+            document.getElementById('party_b_signature_name_confirm').value = this.value;
+        });
+
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('party-a-name') || e.target.classList.contains('party-a-organization')) {
+                updatePartyASignerOptions();
+                updateOrgOptions();
+            }
+            if (e.target.classList.contains('installment-percentage')) {
+                updateInstallmentDescriptions();
+            }
+        });
+
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('party-a-organization')) {
+                updateOrgOptions();
+            }
+        });
+
+        document.querySelectorAll('.party-a-select').forEach(select => {
+            select.addEventListener('change', function() {
+                populatePartyA(this);
+            });
+        });
+
+        document.querySelectorAll('.focal-person-select').forEach(select => {
+            select.addEventListener('change', function() {
+                populateFocalPerson(this);
+            });
+        });
+
+        document.querySelectorAll('.btn-remove-article').forEach(button => {
+            button.addEventListener('click', function () {
+                button.closest('.article-container').remove();
+            });
+        });
+
+        document.querySelectorAll('.btn-remove-installment').forEach(button => {
+            button.addEventListener('click', function () {
+                button.closest('.installment-container').remove();
+                updateRemoveButtons();
+                assignPercentages();
+            });
+        });
+
+        document.querySelectorAll('.btn-remove-focal-person').forEach(button => {
+            button.addEventListener('click', function () {
+                button.closest('.focal-person-container').remove();
+                updateFocalPersonRemoveButtons();
+            });
+        });
+
+        document.querySelectorAll('.btn-remove-party-a').forEach(button => {
+            button.addEventListener('click', function () {
+                button.closest('.party-a-container').remove();
+                updatePartyARemoveButtons();
+                updatePartyASignerOptions();
+                updateOrgOptions();
+            });
+        });
+
+        const form = document.getElementById('contractForm');
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            const percentages = Array.from(document.querySelectorAll('.installment-percentage')).map(select => parseFloat(select.value) || 0);
+            const totalPercentage = percentages.reduce((sum, val) => sum + val, 0);
+            if (Math.abs(totalPercentage - 100) > 0.01) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Total percentage of payment installments must equal 100%.');
+            }
+
+            const focalPersons = document.querySelectorAll('.focal-person-container');
+            if (focalPersons.length === 0) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('At least one focal person is required.');
+            }
+
+            const partyAs = document.querySelectorAll('.party-a-container');
+            if (partyAs.length === 0) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('At least one Party A representative is required.');
+            }
+
+            const partyBSelect = document.getElementById('party_b_select').value;
+            const partyBName = document.getElementById('party_b_signature_name').value;
+            const partyBConfirm = document.getElementById('party_b_signature_name_confirm').value;
+            if (!partyBSelect || (partyBSelect === 'new' && !partyBName)) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Please select a Party B name or enter a new one.');
+            }
+            if (partyBSelect === 'new' && partyBName !== partyBConfirm) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Party B signature name and confirmation do not match.');
+            }
+            if (partyBSelect !== 'new' && partyBSelect !== partyBConfirm) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Party B signature name confirmation must match the selected name.');
+            }
+
+            const partyASigner = document.getElementById('party_a_signer').value;
+            if (!partyASigner) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Please select a Party A signer.');
+            }
+
+            const taxSelect = document.getElementById('tax_percentage_select').value;
+            const taxInput = document.getElementById('tax_percentage').value;
+            const taxPercentage = taxSelect === 'other' ? parseFloat(taxInput) : parseFloat(taxSelect);
+            const deductTaxCode = document.getElementById('deduct_tax_code').value;
+            const vatOrgName = document.getElementById('vat_organization_name').value;
+
+            if (taxPercentage === 0) {
+                if (!deductTaxCode) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    alert('VAT TIN is required when tax percentage is 0%.');
+                }
+                if (!vatOrgName) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    alert('Name of Organization is required when tax percentage is 0%.');
+                }
+                if (deductTaxCode && !/^[A-Z0-9\-]+$/.test(deductTaxCode)) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    alert('VAT TIN must contain only uppercase letters, numbers, and hyphens.');
+                }
+                if (deductTaxCode.length > 50) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    alert('VAT TIN must not exceed 50 characters.');
+                }
+                if (vatOrgName.length > 255) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    alert('Name of Organization must not exceed 255 characters.');
+                }
+            }
+
+            if (taxSelect === 'other' && (isNaN(taxPercentage) || taxPercentage < 0 || taxPercentage > 20)) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Custom tax percentage must be between 0 and 20.');
+            }
+
+            const startDate = document.getElementById('agreement_start_date').value;
+            const endDate = document.getElementById('agreement_end_date').value;
+            if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Agreement end date must be after start date.');
+            }
+
+            const totalFeeUSD = parseFloat(document.getElementById('total_fee_usd').value);
+            if (isNaN(totalFeeUSD) || totalFeeUSD < 0) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Total fee USD must be a non-negative number.');
+            }
+
+            form.classList.add('was-validated');
+        });
+
+        updateRemoveButtons();
+        updateFocalPersonRemoveButtons();
+        updatePartyARemoveButtons();
+        updatePartyASignerOptions();
+        updateOrgOptions();
+        toggleTaxPercentageInput();
+
+        const totalFeeUSD = document.getElementById('total_fee_usd').value;
+        if (totalFeeUSD) {
+            document.getElementById('total_fee_words').value = numberToWords(parseFloat(totalFeeUSD));
+        }
+    });
+</script>
+{% endblock %}
