@@ -1,39 +1,39 @@
-/* === Stat Cards (Top) === */
-  .stat-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-radius: 0.75rem;
-    background: #fff;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-    overflow: hidden;
-    height: 110px;
-    transition: transform 0.2s ease-in-out;
-  }
-  .stat-info { flex: 1; padding: 20px; }
-  .stat-info h3 { font-weight: 700; margin: 0; font-size: 1.4rem; color: #222; }
-  .stat-info span { font-size: 0.9rem; color: #666; }
-  .stat-icon {
-    width: 90px; height:110px;
-    display: flex; align-items: center; justify-content: center;
-    background: #2f3e46;
-  }
-/* Same color for all contract icons */
-.icon-contract {
-  color: #9b59b6; /* Purple */
-  font-size: 1.8rem;
-}
+  /* === Stat Cards (Top) === */
+    .stat-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-radius: 0.75rem;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      overflow: hidden;
+      height: 110px;
+      transition: transform 0.2s ease-in-out;
+    }
+    .stat-info { flex: 1; padding: 20px; }
+    .stat-info h3 { font-weight: 700; margin: 0; font-size: 1.4rem; color: #222; }
+    .stat-info span { font-size: 0.9rem; color: #666; }
+    .stat-icon {
+      width: 90px; height:110px;
+      display: flex; align-items: center; justify-content: center;
+      background: #2f3e46;
+    }
+    /* Same color for all contract icons */
+    .icon-contract {
+      color: #9b59b6; /* Purple */
+      font-size: 1.8rem;
+    }
 
-/* Total Users icon */
-.icon-orange {
-  color: #e67e22;
-  font-size: 1.8rem;
-}
+    /* Total Users icon */
+    .icon-orange {
+      color: #e67e22;
+      font-size: 1.8rem;
+    }
 
-/* Optional: Make all icons consistent */
-.bx {
-  font-size: 1.8rem;
-}
+    /* Optional: Make all icons consistent */
+    .bx {
+      font-size: 1.8rem;
+    }
   .stat-icon i { font-size: 1.8rem; }
   .icon-blue { color: #00e5ff; }
   .icon-red { color: #ff4d4d; }
