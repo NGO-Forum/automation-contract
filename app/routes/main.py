@@ -7,36 +7,41 @@ from app.models.department import Department
 
 main_bp = Blueprint("main", __name__)
 
+
 @main_bp.route("/")
 def index():
+    """Root URL – redirect based on role after login."""
     if current_user.is_authenticated:
-        return redirect(url_for("main.dashboard"))
+        if current_user.has_role('Admin'):
+            return redirect(url_for("main.dashboard"))
+        else:
+            # Manager OR Employee → go straight to contracts list
+            return redirect(url_for("contracts.index"))
     return redirect(url_for("auth.login"))
+
 
 @main_bp.route("/dashboard")
 @login_required
 def dashboard():
+    """Dashboard – **only Admins** can access."""
+    if not current_user.has_role('Admin'):
+        flash("You do not have permission to access the dashboard.", "danger")
+        # Non-admins are sent to contracts
+        return redirect(url_for("contracts.index"))
+
     try:
-        # Ensure user has one of the allowed roles
-        if not current_user.has_role('Admin') and not current_user.has_role('Manager') and not current_user.has_role('Employee'):
-            flash("You do not have permission to access the dashboard.", "danger")
-            return redirect(url_for("auth.logout"))
-
-        # Fetch all departments
         departments = Department.query.all()
-
-        # Prepare data for the pie chart and department details
         department_data = []
         for dept in departments:
             users = User.query.filter_by(department_id=dept.id).all()
             user_count = len(users)
-            
+
             managers = [
-                user.username for user in users 
+                user.username for user in users
                 if user.role and user.role.name == 'Manager'
             ]
             employees = [
-                user.username for user in users 
+                user.username for user in users
                 if user.role and user.role.name == 'Employee'
             ]
 
@@ -47,11 +52,9 @@ def dashboard():
                 'employees': employees
             })
 
-        # Prepare data for the pie chart
         pie_labels = [dept['name'] for dept in department_data]
         pie_data = [dept['user_count'] for dept in department_data]
 
-        # Handle case where no departments exist
         if not department_data:
             pie_labels = ['No Departments']
             pie_data = [0]
@@ -64,6 +67,6 @@ def dashboard():
             pie_data=pie_data
         )
     except Exception as e:
-        print(f"Dashboard error: {str(e)}")  # Debug
-        flash("An error occurred while loading the dashboard. Please try again.", "danger")
-        return redirect(url_for("auth.login"))
+        print(f"Dashboard error: {str(e)}")
+        flash("An error occurred while loading the dashboard.", "danger")
+        return redirect(url_for("contracts.index"))

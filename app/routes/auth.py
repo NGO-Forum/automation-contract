@@ -1,3 +1,4 @@
+# app/routes/auth.py
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_limiter import Limiter
@@ -11,12 +12,14 @@ from ..forms import LoginForm, RegisterForm, PasswordResetRequestForm, PasswordR
 auth_bp = Blueprint("auth", __name__)
 limiter = Limiter(key_func=get_remote_address)
 
+
 # ------------------------------
 # Token Helpers
 # ------------------------------
 def generate_reset_token(email):
     serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
     return serializer.dumps(email, salt='password-reset-salt')
+
 
 def verify_reset_token(token, expiration=3600):
     serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
@@ -26,6 +29,7 @@ def verify_reset_token(token, expiration=3600):
     except (SignatureExpired, BadSignature):
         return None
 
+
 # ------------------------------
 # Login
 # ------------------------------
@@ -33,7 +37,7 @@ def verify_reset_token(token, expiration=3600):
 @limiter.limit("5 per minute")
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("main.dashboard"))
+        return redirect(url_for("main.index"))  # Use main.index (role-aware)
 
     form = LoginForm()
     if form.validate_on_submit():
@@ -42,12 +46,20 @@ def login():
 
         if user and user.check_password(form.password.data):
             login_user(user, remember=form.remember.data)
-            flash("Login successful! Redirecting to dashboard.", "success")
-            return redirect(url_for("main.dashboard"))
+
+            # ROLE-BASED FLASH MESSAGE
+            if user.has_role('Admin'):
+                flash("Login successful! Redirecting to dashboard.", "success")
+            else:
+                flash("Login successful! Redirecting to the system.", "success")
+
+            # Always redirect to main.index → it handles Admin vs Others
+            return redirect(url_for("main.index"))
 
         flash("Invalid identifier or password. Please try again.", "danger")
 
     return render_template("auth/login.html", form=form)
+
 
 # ------------------------------
 # Register
@@ -55,7 +67,7 @@ def login():
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for("main.dashboard"))
+        return redirect(url_for("main.index"))
 
     form = RegisterForm()
     if form.validate_on_submit():
@@ -72,14 +84,21 @@ def register():
             db.session.add(new_user)
             db.session.commit()
             login_user(new_user)
-            flash("Registration successful! Redirecting to dashboard.", "success")
-            return redirect(url_for("main.dashboard"))
+
+            # Same role-based message for new users
+            if new_user.has_role('Admin'):
+                flash("Registration successful! Redirecting to dashboard.", "success")
+            else:
+                flash("Registration successful! Redirecting to the system.", "success")
+
+            return redirect(url_for("main.index"))
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Registration error: {str(e)}")
             flash("Registration failed. Please try again later.", "danger")
 
     return render_template("auth/register.html", form=form)
+
 
 # ------------------------------
 # Logout
@@ -94,7 +113,8 @@ def logout():
     except Exception as e:
         current_app.logger.error(f"Logout error: {str(e)}")
         flash("An error occurred during logout. Please try again.", "danger")
-        return redirect(url_for("main.dashboard"))
+        return redirect(url_for("main.index"))
+
 
 # ------------------------------
 # Reset Password Request
@@ -103,7 +123,7 @@ def logout():
 @limiter.limit("5 per hour")
 def reset_password_request():
     if current_user.is_authenticated:
-        return redirect(url_for("main.dashboard"))
+        return redirect(url_for("main.index"))
 
     form = PasswordResetRequestForm()
     if form.validate_on_submit():
@@ -113,9 +133,7 @@ def reset_password_request():
             token = generate_reset_token(email)
             reset_url = url_for('auth.reset_password', token=token, _external=True)
             msg = Message('Password Reset Request', recipients=[email])
-            msg.body = f'''To reset your password, click the following link: {reset_url}
-If you did not request this, please ignore this email.
-The link will expire in 1 hour.'''
+            msg.body = f'''To reset your password, click the following link:\n\n{reset_url}\n\nIf you did not request this, please ignore this email.\nThe link will expire in 1 hour.'''
             mail.send(msg)
             flash("A password reset link has been sent to your email.", "success")
         else:
@@ -125,6 +143,7 @@ The link will expire in 1 hour.'''
 
     return render_template("auth/reset_password_request.html", form=form)
 
+
 # ------------------------------
 # Reset Password (with token)
 # ------------------------------
@@ -132,7 +151,7 @@ The link will expire in 1 hour.'''
 @limiter.limit("5 per hour")
 def reset_password(token):
     if current_user.is_authenticated:
-        return redirect(url_for("main.dashboard"))
+        return redirect(url_for("main.index"))
 
     email = verify_reset_token(token)
     if not email:
@@ -150,8 +169,13 @@ def reset_password(token):
             user.set_password(form.password.data)
             db.session.commit()
             login_user(user)
-            flash("Your password has been reset and you are now logged in.", "success")
-            return redirect(url_for("main.dashboard"))
+
+            if user.has_role('Admin'):
+                flash("Your password has been reset! Redirecting to dashboard.", "success")
+            else:
+                flash("Your password has been reset! Redirecting to the system.", "success")
+
+            return redirect(url_for("main.index"))
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Password reset error: {str(e)}")
