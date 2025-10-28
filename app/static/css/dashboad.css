@@ -18,6 +18,22 @@
     display: flex; align-items: center; justify-content: center;
     background: #2f3e46;
   }
+/* Same color for all contract icons */
+.icon-contract {
+  color: #9b59b6; /* Purple */
+  font-size: 1.8rem;
+}
+
+/* Total Users icon */
+.icon-orange {
+  color: #e67e22;
+  font-size: 1.8rem;
+}
+
+/* Optional: Make all icons consistent */
+.bx {
+  font-size: 1.8rem;
+}
   .stat-icon i { font-size: 1.8rem; }
   .icon-blue { color: #00e5ff; }
   .icon-red { color: #ff4d4d; }
