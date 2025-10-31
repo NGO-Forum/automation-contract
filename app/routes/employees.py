@@ -133,23 +133,29 @@ def create():
     form_data = {}
     if request.method == 'POST':
         try:
-            # --- Contract basics ---
-            contract_type = request.form['contract_type'].strip()
-            contract_no = request.form['contract_no'].strip()
-            if not contract_no or not re.match(r'^NGOF-(FDC|UDC)/\d+$', contract_no):
-                contract_no = generate_contract_no(contract_type)
-
+            # --- Parse dates ---
             start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d').date()
             end_date = datetime.strptime(request.form['end_date'], '%Y-%m-%d').date()
-
-            # Validate end date >= start date
             if end_date < start_date:
                 flash('End date cannot be earlier than start date.', 'danger')
                 form_data = request.form.to_dict()
                 form_data['thirteenth_month_salary'] = 'thirteenth_month_salary' in request.form
                 return render_template('employees/create.html', form_data=form_data)
 
-            # --- Create employee ---
+            # --- Signature Dates (optional) ---
+            employer_sig_date = request.form.get('employer_signature_date')
+            employee_sig_date = request.form.get('employee_signature_date')
+
+            employer_sig_date = datetime.strptime(employer_sig_date, '%Y-%m-%d').date() if employer_sig_date else start_date
+            employee_sig_date = datetime.strptime(employee_sig_date, '%Y-%m-%d').date() if employee_sig_date else start_date
+
+            # --- Contract Number ---
+            contract_type = request.form['contract_type'].strip()
+            contract_no = request.form['contract_no'].strip()
+            if not re.match(r'^NGOF-(FDC|UDC)/\d+$', contract_no):
+                contract_no = generate_contract_no(contract_type, contract_no)
+
+            # --- Create Employee ---
             emp = Employee(
                 contract_no=contract_no,
                 contract_type=contract_type,
@@ -166,7 +172,6 @@ def create():
                 medical_allowance=float(request.form.get('medical_allowance', 150.00)),
                 child_education_allowance=float(request.form.get('child_education_allowance', 60.00)),
                 delivery_benefit=float(request.form.get('delivery_benefit', 200.00)),
-                delivery_benefit_miscarriage=float(request.form.get('delivery_benefit_miscarriage', 200.00)),
                 death_benefit=float(request.form.get('death_benefit', 200.00)),
                 severance_percentage=float(request.form.get('severance_percentage', 8.33)),
                 thirteenth_month_salary='thirteenth_month_salary' in request.form,
@@ -179,17 +184,12 @@ def create():
                 organization_email=request.form['organization_email'].strip(),
                 employer_signature_name=request.form['employer_signature_name'].strip(),
                 employee_signature_name=request.form['employee_signature_name'].strip(),
-                employer_signature_date=start_date,
-                employee_signature_date=start_date
+                employer_signature_date=employer_sig_date,
+                employee_signature_date=employee_sig_date
             )
 
             # Generate salary in words
             emp.generate_salary_in_words()
-
-            # Validate client-provided words
-            client_words = request.form.get('salary_amount_words', '').strip()
-            if client_words and client_words != emp.salary_amount_words:
-                flash('Salary in words adjusted to match amount.', 'info')
 
             db.session.add(emp)
             db.session.commit()
@@ -224,22 +224,30 @@ def update(id):
 
     if request.method == 'POST':
         try:
-            # --- Dates ---
+            # --- Parse Contract Dates ---
             start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d').date()
             end_date = datetime.strptime(request.form['end_date'], '%Y-%m-%d').date()
 
             if end_date < start_date:
                 flash('End date cannot be earlier than start date.', 'danger')
                 form_data = request.form.to_dict()
+                form_data['thirteenth_month_salary'] = 'thirteenth_month_salary' in request.form
                 return render_template('employees/update.html', employee=employee, form_data=form_data)
 
-            # --- Contract number ---
+            # --- Signature Dates (optional) ---
+            employer_sig_date_str = request.form.get('employer_signature_date')
+            employee_sig_date_str = request.form.get('employee_signature_date')
+
+            employer_sig_date = datetime.strptime(employer_sig_date_str, '%Y-%m-%d').date() if employer_sig_date_str else start_date
+            employee_sig_date = datetime.strptime(employee_sig_date_str, '%Y-%m-%d').date() if employee_sig_date_str else start_date
+
+            # --- Contract Number ---
             new_type = request.form['contract_type'].strip()
             current_no = request.form['contract_no'].strip()
             expected_no = generate_contract_no(new_type, current_no)
             contract_no = current_no if current_no == expected_no else expected_no
 
-            # --- Update fields ---
+            # --- Update All Fields ---
             employee.contract_no = contract_no
             employee.contract_type = new_type
             employee.employee_name = request.form['employee_name'].strip()
@@ -255,10 +263,11 @@ def update(id):
             employee.medical_allowance = float(request.form.get('medical_allowance', 150.00))
             employee.child_education_allowance = float(request.form.get('child_education_allowance', 60.00))
             employee.delivery_benefit = float(request.form.get('delivery_benefit', 200.00))
-            employee.delivery_benefit_miscarriage = float(request.form.get('delivery_benefit_miscarriage', 200.00))
             employee.death_benefit = float(request.form.get('death_benefit', 200.00))
             employee.severance_percentage = float(request.form.get('severance_percentage', 8.33))
             employee.thirteenth_month_salary = 'thirteenth_month_salary' in request.form
+
+            # Organization
             employee.organization_name = request.form['organization_name'].strip()
             employee.representative_name = request.form['representative_name'].strip()
             employee.representative_title = request.form.get('representative_title', 'Executive Director').strip()
@@ -266,18 +275,21 @@ def update(id):
             employee.organization_tel = request.form['organization_tel'].strip()
             employee.organization_fax = request.form['organization_fax'].strip()
             employee.organization_email = request.form['organization_email'].strip()
+
+            # Signatures
             employee.employer_signature_name = request.form['employer_signature_name'].strip()
             employee.employee_signature_name = request.form['employee_signature_name'].strip()
-            employee.employer_signature_date = start_date
-            employee.employee_signature_date = start_date
+            employee.employer_signature_date = employer_sig_date
+            employee.employee_signature_date = employee_sig_date
 
-            # Salary words
+            # --- Salary in Words ---
             employee.generate_salary_in_words()
-            if request.form.get('salary_amount_words', '').strip() != employee.salary_amount_words:
+            client_words = request.form.get('salary_amount_words', '').strip()
+            if client_words and client_words != employee.salary_amount_words:
                 flash('Salary in words corrected to match amount.', 'info')
 
             db.session.commit()
-            flash('Employee updated successfully!', 'success')
+            flash('Employee contract updated successfully!', 'success')
             return redirect(url_for('employees.index'))
 
         except ValueError as ve:
@@ -287,10 +299,12 @@ def update(id):
             db.session.rollback()
             flash(f'Update failed: {e}', 'danger')
 
+        # Preserve form data on error
         form_data = request.form.to_dict()
         form_data['thirteenth_month_salary'] = 'thirteenth_month_salary' in request.form
 
     else:
+        # GET: Populate form_data from DB
         form_data = employee.to_dict()
         form_data['thirteenth_month_salary'] = employee.thirteenth_month_salary
 

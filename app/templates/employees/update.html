@@ -21,7 +21,7 @@
               class="needs-validation"
               novalidate>
 
-            <!-- ==================== Employee Details ==================== -->
+            <!-- Employee Details -->
             <div class="section-header mb-4">
                 <h5><i class="bi bi-person-badge"></i> Employee Details</h5>
                 <hr>
@@ -60,7 +60,7 @@
                 </div>
             </div>
 
-            <!-- ==================== Contract Details ==================== -->
+            <!-- Contract Details -->
             <div class="section-header mb-4">
                 <h5><i class="bi bi-file-earmark-contract"></i> Contract Details</h5>
                 <hr>
@@ -70,7 +70,7 @@
                     <label for="contract_no" class="form-label fw-bold">Contract Number <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="contract_no" name="contract_no"
                            value="{{ form_data.contract_no | default(employee.contract_no) }}" required>
-                    <div class="invalid-feedback">Please enter contract number.</div>
+                    <div class="invalid-feedback">Please enter valid contract number (e.g., NGOF-FDC/001).</div>
                 </div>
                 <div class="col-md-4">
                     <label for="contract_type" class="form-label fw-bold">Contract Type <span class="text-danger">*</span></label>
@@ -99,9 +99,7 @@
                         <input type="date" class="form-control" id="start_date" name="start_date"
                                value="{{ form_data.start_date | default(employee.start_date.strftime('%Y-%m-%d') if employee.start_date else '') }}"
                                required>
-                        <span class="input-group-text">
-                            <i class="bi bi-calendar"></i>
-                        </span>
+                        <span class="input-group-text calendar-icon"><i class="bi bi-calendar"></i></span>
                         <div class="invalid-feedback">Please select a start date.</div>
                     </div>
                 </div>
@@ -111,15 +109,13 @@
                         <input type="date" class="form-control" id="end_date" name="end_date"
                                value="{{ form_data.end_date | default(employee.end_date.strftime('%Y-%m-%d') if employee.end_date else '') }}"
                                required>
-                        <span class="input-group-text">
-                            <i class="bi bi-calendar"></i>
-                        </span>
+                        <span class="input-group-text calendar-icon"><i class="bi bi-calendar"></i></span>
                         <div class="invalid-feedback">End date must be on or after start date.</div>
                     </div>
                 </div>
             </div>
 
-            <!-- ==================== Salary & Benefits ==================== -->
+            <!-- Salary & Benefits -->
             <div class="section-header mb-4">
                 <h5><i class="bi bi-currency-dollar"></i> Salary & Benefits</h5>
                 <hr>
@@ -186,7 +182,7 @@
                 </div>
             </div>
 
-            <!-- ==================== Organization Details ==================== -->
+            <!-- Organization Details -->
             <div class="section-header mb-4">
                 <h5><i class="bi bi-building"></i> Organization Details</h5>
                 <hr>
@@ -205,8 +201,7 @@
                 <div class="col-md-4">
                     <label for="representative_title" class="form-label">Representative Title</label>
                     <input type="text" class="form-control" id="representative_title" name="representative_title"
-                           value="{{ form_data.representative_title | default(employee.representative_title) }}"
-                           placeholder="e.g., Executive Director">
+                           value="{{ form_data.representative_title | default(employee.representative_title) }}">
                 </div>
                 <div class="col-12">
                     <label for="organization_address" class="form-label">Address</label>
@@ -231,7 +226,7 @@
                 </div>
             </div>
 
-            <!-- ==================== Signatures ==================== -->
+            <!-- Signatures -->
             <div class="section-header mb-4">
                 <h5><i class="bi bi-pen"></i> Signatures</h5>
                 <hr>
@@ -247,9 +242,26 @@
                     <input type="text" class="form-control" id="employee_signature_name" name="employee_signature_name"
                            value="{{ form_data.employee_signature_name | default(employee.employee_signature_name) }}">
                 </div>
+
+                <div class="col-md-6">
+                    <label for="employer_signature_date" class="form-label">Employer Signature Date</label>
+                    <div class="input-group">
+                        <input type="date" class="form-control" id="employer_signature_date" name="employer_signature_date"
+                               value="{{ form_data.employer_signature_date | default(employee.employer_signature_date.strftime('%Y-%m-%d') if employee.employer_signature_date else '') }}">
+                        <span class="input-group-text calendar-icon"><i class="bi bi-calendar"></i></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label for="employee_signature_date" class="form-label">Employee Signature Date</label>
+                    <div class="input-group">
+                        <input type="date" class="form-control" id="employee_signature_date" name="employee_signature_date"
+                               value="{{ form_data.employee_signature_date | default(employee.employee_signature_date.strftime('%Y-%m-%d') if employee.employee_signature_date else '') }}">
+                        <span class="input-group-text calendar-icon"><i class="bi bi-calendar"></i></span>
+                    </div>
+                </div>
             </div>
 
-            <!-- ==================== Submit ==================== -->
+            <!-- Submit -->
             <div class="text-center mt-5">
                 <button type="submit" class="btn btn-primary btn-lg px-5">
                     <i class="bi bi-save"></i> Update Employee Contract
@@ -266,18 +278,25 @@ document.addEventListener('DOMContentLoaded', function () {
     const contractNo = document.getElementById('contract_no');
     const startDate = document.getElementById('start_date');
     const endDate = document.getElementById('end_date');
+    const employerSigDate = document.getElementById('employer_signature_date');
+    const employeeSigDate = document.getElementById('employee_signature_date');
+    const salaryAmount = document.getElementById('salary_amount');
+    const salaryWords = document.getElementById('salary_amount_words');
+    const salaryFormatted = document.getElementById('salary_formatted');
+    const employeeName = document.getElementById('employee_name');
+    const employeeSignature = document.getElementById('employee_signature_name');
 
-    // ---- 1. AUTO UPDATE CONTRACT NUMBER ----
+    // 1. Update Contract Number
     function updateContractNumber() {
         if (!contractType.value) return;
         const prefix = 'NGOF';
-        const currentNumber = contractNo.value.match(/\d+$/)?.[0] || '001';
         const typeCode = contractType.value.includes('FDC') ? 'FDC' : 'UDC';
-        contractNo.value = `${prefix}-${typeCode}/${currentNumber}`;
+        const currentNum = contractNo.value.match(/\d+$/)?.[0] || '001';
+        contractNo.value = `${prefix}-${typeCode}/${currentNum}`;
     }
     contractType.addEventListener('change', updateContractNumber);
 
-    // ---- 2. VALIDATE END DATE >= START DATE ----
+    // 2. Validate End Date >= Start Date
     function validateDates() {
         if (startDate.value && endDate.value && new Date(endDate.value) < new Date(startDate.value)) {
             endDate.setCustomValidity('End date must be on or after start date.');
@@ -288,30 +307,24 @@ document.addEventListener('DOMContentLoaded', function () {
     startDate.addEventListener('change', validateDates);
     endDate.addEventListener('change', validateDates);
 
-    // ---- 3. FORM SUBMIT VALIDATION ----
-    form.addEventListener('submit', function (e) {
-        validateDates();
-        if (!form.checkValidity()) {
-            e.preventDefault();
-            e.stopPropagation();
+    // 3. Sync Signature Dates to Start Date if empty
+    function syncSignatureDates() {
+        if (startDate.value) {
+            if (!employerSigDate.value) employerSigDate.value = startDate.value;
+            if (!employeeSigDate.value) employeeSigDate.value = startDate.value;
         }
-        form.classList.add('was-validated');
-        document.getElementById('salary_amount_words').removeAttribute('readonly');
-    }, false);
+    }
+    startDate.addEventListener('change', syncSignatureDates);
 
-    // ---- 4. CALENDAR ICON CLICK ----
-    document.querySelectorAll('.input-group-text').forEach(icon => {
+    // 4. Calendar Icon Click
+    document.querySelectorAll('.calendar-icon').forEach(icon => {
         icon.addEventListener('click', () => {
             const input = icon.parentElement.querySelector('input[type="date"]');
             if (input) input.showPicker();
         });
     });
 
-    // ---- 5. SALARY → WORDS + FORMATTED ----
-    const salaryAmount = document.getElementById('salary_amount');
-    const salaryWords = document.getElementById('salary_amount_words');
-    const salaryFormatted = document.getElementById('salary_formatted');
-
+    // 5. Salary to Words
     function numberToWords(num) {
         if (num === 0) return 'Zero';
         const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
@@ -363,30 +376,29 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     salaryAmount.addEventListener('input', convertSalaryToWords);
 
-    // ---- 6. AUTO-FILL EMPLOYEE SIGNATURE ----
-    const employeeName = document.getElementById('employee_name');
-    const employeeSignature = document.getElementById('employee_signature_name');
-    employeeName.addEventListener('input', () => employeeSignature.value = employeeName.value);
-
-    // ---- 7. DEFAULT ORGANIZATION INFO ----
-    const defaults = {
-        organization_name: 'The NGO Forum on Cambodia',
-        representative_name: 'Mr. Soeung Saroeun',
-        organization_address: '#9-11, St. 476, Sangkat Toul Tompong I, Khan Chamka Morn, Phnom Penh, Cambodia',
-        organization_tel: '023 214 429',
-        organization_fax: '023 994 063',
-        organization_email: 'info@ngoforum.org.kh',
-        employer_signature_name: 'Mr. Soeung Saroeun'
-    };
-    Object.entries(defaults).forEach(([k, v]) => {
-        const el = document.getElementById(k);
-        if (el && !el.value.trim()) el.value = v;
+    // 6. Auto-fill Employee Signature Name
+    employeeName.addEventListener('input', () => {
+        if (!employeeSignature.value.trim()) {
+            employeeSignature.value = employeeName.value;
+        }
     });
 
-    // ---- 8. INITIALIZE ----
+    // 7. Form Submit Validation
+    form.addEventListener('submit', function (e) {
+        validateDates();
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        form.classList.add('was-validated');
+        salaryWords.removeAttribute('readonly');
+    });
+
+    // 8. Initialize
     updateContractNumber();
     convertSalaryToWords();
     validateDates();
+    syncSignatureDates();
 });
 </script>
 {% endblock %}
