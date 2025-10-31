@@ -7,62 +7,72 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboad.css') }}" />
 
 <div class="dashboard-container p-4">
-  <!-- Stat Cards - SAME ICON FOR ALL CONTRACTS -->
+  <!-- Stat Cards - CLICKABLE + FULL TEXT HOVER GREEN -->
   <div class="row g-4 mb-4">
+
     <!-- Total Employee Contracts -->
     <div class="col-lg-3 col-md-6">
-      <div class="stat-card">
-        <div class="stat-info">
-          <h3>{{ total_employee_contracts }}</h3>
-          <span>Total Employee Contracts</span>
+      <a href="{{ url_for('employees.index') }}" class="text-decoration-none d-block">
+        <div class="stat-card position-relative">
+          <div class="stat-info">
+            <h3 class="mb-1 stat-value">{{ total_employee_contracts }}</h3>
+            <span class="stat-label d-block">Total Employee Contracts</span>
+          </div>
+          <div class="stat-icon">
+            <i class='bx bx-file fs-4 icon-contract'></i>
+          </div>
         </div>
-        <div class="stat-icon">
-          <i class='bx bx-file fs-4 icon-contract'></i>
-        </div>
-      </div>
+      </a>
     </div>
 
     <!-- Total Intern Contracts -->
     <div class="col-lg-3 col-md-6">
-      <div class="stat-card">
-        <div class="stat-info">
-          <h3>{{ total_intern_contracts }}</h3>
-          <span>Total Intern Contracts</span>
+      <a href="{{ url_for('interns.index') }}" class="text-decoration-none d-block">
+        <div class="stat-card position-relative">
+          <div class="stat-info">
+            <h3 class="mb-1 stat-value">{{ total_intern_contracts }}</h3>
+            <span class="stat-label d-block">Total Intern Contracts</span>
+          </div>
+          <div class="stat-icon">
+            <i class='bx bx-file fs-4 icon-contract'></i>
+          </div>
         </div>
-        <div class="stat-icon">
-          <i class='bx bx-file fs-4 icon-contract'></i>
-        </div>
-      </div>
+      </a>
     </div>
 
     <!-- Global Consultant Contracts -->
     <div class="col-lg-3 col-md-6">
-      <div class="stat-card">
-        <div class="stat-info">
-          <h3>{{ total_consultant_contracts }}</h3>
-          <span>Global Consultant Contracts</span>
+      <a href="{{ url_for('contracts.index') }}" class="text-decoration-none d-block">
+        <div class="stat-card position-relative">
+          <div class="stat-info">
+            <h3 class="mb-1 stat-value">{{ total_consultant_contracts }}</h3>
+            <span class="stat-label d-block">Global Consultant Contracts</span>
+          </div>
+          <div class="stat-icon">
+            <i class='bx bx-file fs-4 icon-contract'></i>
+          </div>
         </div>
-        <div class="stat-icon">
-          <i class='bx bx-file fs-4 icon-contract'></i>
-        </div>
-      </div>
+      </a>
     </div>
 
-    <!-- Total Users (different icon) -->
+    <!-- Total Users -->
     <div class="col-lg-3 col-md-6">
-      <div class="stat-card">
-        <div class="stat-info">
-          <h3>{{ total_users }}</h3>
-          <span>Total Users</span>
+      <a href="{{ url_for('users.index') }}" class="text-decoration-none d-block">
+        <div class="stat-card position-relative">
+          <div class="stat-info">
+            <h3 class="mb-1 stat-value">{{ total_users }}</h3>
+            <span class="stat-label d-block">Total Users</span>
+          </div>
+          <div class="stat-icon">
+            <i class='bx bx-group icon-orange'></i>
+          </div>
         </div>
-        <div class="stat-icon">
-          <i class='bx bx-group icon-orange'></i>
-        </div>
-      </div>
+      </a>
     </div>
+
   </div>
 
-  <!-- Charts Section -->
+  <!-- Charts Section (unchanged) -->
   <div class="row g-4">
     <!-- Monthly Report -->
     <div class="col-lg-8">
@@ -207,4 +217,24 @@
     }
   });
 </script>
+
+<!-- HOVER: BOTH NUMBER & LABEL TURN GREEN -->
+<style>
+
+
+  .stat-value,
+  .stat-label {
+    transition: color 0.25s ease;
+  }
+
+  .stat-card:hover .stat-value,
+  .stat-card:hover .stat-label {
+    color: #28a745 !important; /* GREEN ON HOVER */
+  }
+
+  /* Remove link underline */
+  .text-decoration-none {
+    color: inherit;
+  }
+</style>
 {% endblock %}
