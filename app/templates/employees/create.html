@@ -3,7 +3,6 @@
 {% block content %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/create.css') }}">
-
 <div class="container mt-4">
     <div class="form-header text-center mb-0">
         <h1><i class="bi bi-person-plus"></i> Create Employee Contract</h1>
@@ -14,9 +13,8 @@
                 <i class="bi bi-arrow-left"></i> Back to Employee List
             </a>
         </nav>
-
         <form id="employeeForm" action="{{ url_for('employees.create') }}" method="POST" class="needs-validation" novalidate>
-            
+           
             <!-- Employee Details -->
             <div class="section-header mb-4">
                 <h5><i class="bi bi-person-badge"></i> Employee Details</h5>
@@ -82,31 +80,27 @@
                     <input type="text" class="form-control" id="working_hours" name="working_hours"
                            value="{{ form_data.working_hours | default('Monday to Friday: 08:00am-12:00pm and 01:30pm-05:30pm') }}">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <label for="start_date" class="form-label fw-bold">Start Date <span class="text-danger">*</span></label>
                     <div class="input-group">
                         <input type="date" class="form-control" id="start_date" name="start_date"
-                               value="{{ form_data.start_date | default('') }}" required aria-describedby="start_date_icon">
-                        <span class="input-group-text" id="start_date_icon">
+                               value="{{ form_data.start_date | default('') }}" required>
+                        <span class="input-group-text">
                             <i class="bi bi-calendar"></i>
                         </span>
                         <div class="invalid-feedback">Please select a start date.</div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <label for="duration_months" class="form-label fw-bold">Duration <span class="text-danger">*</span></label>
-                    <select class="form-select" id="duration_months" name="duration_months" required>
-                        <option value="" disabled>Select Duration</option>
-                        <option value="3">3 Months</option>
-                        <option value="6">6 Months</option>
-                        <option value="12" selected>12 Months</option>
-                        <option value="24">24 Months</option>
-                    </select>
-                    <div class="invalid-feedback">Please select contract duration.</div>
-                </div>
-                <div class="col-md-4">
-                    <label for="end_date_display" class="form-label">End Date</label>
-                    <input type="date" class="form-control" id="end_date_display" readonly>
+                <div class="col-md-6">
+                    <label for="end_date" class="form-label fw-bold">End Date <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="date" class="form-control" id="end_date" name="end_date"
+                               value="{{ form_data.end_date | default('') }}" required>
+                        <span class="input-group-text">
+                            <i class="bi bi-calendar"></i>
+                        </span>
+                        <div class="invalid-feedback">Please select an end date.</div>
+                    </div>
                 </div>
             </div>
 
@@ -244,19 +238,33 @@ document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('employeeForm');
     const contractType = document.getElementById('contract_type');
     const contractNo = document.getElementById('contract_no');
+    const startDate = document.getElementById('start_date');
+    const endDate = document.getElementById('end_date');
 
     // ---- CONTRACT TYPE → AUTO CONTRACT NUMBER ----
     function updateContractNumber() {
         if (!contractType.value) return;
         const prefix = 'NGOF';
-        const currentNumber = contractNo.value.match(/\d+$/)?.[0] || '001'; // keep last numeric if any
+        const currentNumber = contractNo.value.match(/\d+$/)?.[0] || '001';
         const typeCode = contractType.value.includes('FDC') ? 'FDC' : 'UDC';
         contractNo.value = `${prefix}-${typeCode}/${currentNumber}`;
     }
     contractType.addEventListener('change', updateContractNumber);
 
+    // ---- VALIDATE END DATE >= START DATE ----
+    function validateDates() {
+        if (startDate.value && endDate.value && new Date(endDate.value) < new Date(startDate.value)) {
+            endDate.setCustomValidity('End date must be on or after start date.');
+        } else {
+            endDate.setCustomValidity('');
+        }
+    }
+    startDate.addEventListener('change', validateDates);
+    endDate.addEventListener('change', validateDates);
+
     // ---- FORM VALIDATION ----
     form.addEventListener('submit', function (event) {
+        validateDates();
         if (!form.checkValidity()) {
             event.preventDefault();
             event.stopPropagation();
@@ -265,30 +273,13 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('salary_amount_words').removeAttribute('readonly');
     }, false);
 
-    // ---- CALENDAR ICON ----
-    const dateInputs = document.querySelectorAll('input[type="date"]');
-    dateInputs.forEach(input => {
-        const icon = input.parentElement.querySelector('.input-group-text');
-        if (icon) icon.addEventListener('click', () => input.showPicker());
+    // ---- CALENDAR ICON CLICK ----
+    document.querySelectorAll('.input-group-text').forEach(icon => {
+        icon.addEventListener('click', () => {
+            const input = icon.parentElement.querySelector('input[type="date"]');
+            if (input) input.showPicker();
+        });
     });
-
-    // ---- START/END DATE CALCULATION ----
-    const startDateInput = document.getElementById('start_date');
-    const durationSelect = document.getElementById('duration_months');
-    const endDateDisplay = document.getElementById('end_date_display');
-
-    function calculateEndDate() {
-        const startDate = startDateInput.value;
-        const duration = parseInt(durationSelect.value) || 12;
-        if (!startDate) return endDateDisplay.value = '';
-        const start = new Date(startDate + 'T00:00:00');
-        const end = new Date(start);
-        end.setMonth(start.getMonth() + duration);
-        end.setDate(0);
-        endDateDisplay.value = end.toISOString().split('T')[0];
-    }
-    startDateInput.addEventListener('change', calculateEndDate);
-    durationSelect.addEventListener('change', calculateEndDate);
 
     // ---- SALARY TO WORDS ----
     const salaryAmount = document.getElementById('salary_amount');
@@ -367,9 +358,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Initialize
-    calculateEndDate();
-    convertSalaryToWords();
     updateContractNumber();
+    convertSalaryToWords();
 });
 </script>
 {% endblock %}

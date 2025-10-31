@@ -93,45 +93,29 @@
                            value="{{ form_data.working_hours | default(employee.working_hours) }}">
                 </div>
 
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <label for="start_date" class="form-label fw-bold">Start Date <span class="text-danger">*</span></label>
                     <div class="input-group">
                         <input type="date" class="form-control" id="start_date" name="start_date"
                                value="{{ form_data.start_date | default(employee.start_date.strftime('%Y-%m-%d') if employee.start_date else '') }}"
-                               required aria-describedby="start_date_icon">
-                        <span class="input-group-text" id="start_date_icon">
+                               required>
+                        <span class="input-group-text">
                             <i class="bi bi-calendar"></i>
                         </span>
                         <div class="invalid-feedback">Please select a start date.</div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <label for="duration_months" class="form-label fw-bold">Duration <span class="text-danger">*</span></label>
-                    <select class="form-select" id="duration_months" name="duration_months" required>
-                        <option value="" disabled>Select Duration</option>
-                        <option value="3"
-                                {{ 'selected' if (form_data.duration_months | default(employee.duration_months | default(12)))|string in ['3','3'] }}>
-                            3 Months
-                        </option>
-                        <option value="6"
-                                {{ 'selected' if (form_data.duration_months | default(employee.duration_months | default(12)))|string in ['6','6'] }}>
-                            6 Months
-                        </option>
-                        <option value="12"
-                                {{ 'selected' if (form_data.duration_months | default(employee.duration_months | default(12)))|string in ['12','12'] }}>
-                            12 Months
-                        </option>
-                        <option value="24"
-                                {{ 'selected' if (form_data.duration_months | default(employee.duration_months | default(12)))|string in ['24','24'] }}>
-                            24 Months
-                        </option>
-                    </select>
-                    <div class="invalid-feedback">Please select contract duration.</div>
-                </div>
-                <div class="col-md-4">
-                    <label for="end_date_display" class="form-label">End Date</label>
-                    <input type="date" class="form-control" id="end_date_display" readonly
-                           value="{{ form_data.end_date | default(employee.end_date.strftime('%Y-%m-%d') if employee.end_date else '') }}">
+                <div class="col-md-6">
+                    <label for="end_date" class="form-label fw-bold">End Date <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="date" class="form-control" id="end_date" name="end_date"
+                               value="{{ form_data.end_date | default(employee.end_date.strftime('%Y-%m-%d') if employee.end_date else '') }}"
+                               required>
+                        <span class="input-group-text">
+                            <i class="bi bi-calendar"></i>
+                        </span>
+                        <div class="invalid-feedback">End date must be on or after start date.</div>
+                    </div>
                 </div>
             </div>
 
@@ -194,7 +178,7 @@
                 <div class="col-md-6">
                     <div class="form-check mt-4">
                         <input class="form-check-input" type="checkbox" id="thirteenth_month_salary" name="thirteenth_month_salary"
-                               {{ 'checked' if (form_data.thirteenth_month_salary | default(employee.thirteenth_month_salary)) }}>
+                               {{ 'checked' if form_data.thirteenth_month_salary | default(employee.thirteenth_month_salary) }}>
                         <label class="form-check-label" for="thirteenth_month_salary">
                             Include 13th Month Salary
                         </label>
@@ -277,95 +261,75 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const form           = document.getElementById('employeeForm');
-    const contractType   = document.getElementById('contract_type');
-    const contractNo     = document.getElementById('contract_no');
+    const form = document.getElementById('employeeForm');
+    const contractType = document.getElementById('contract_type');
+    const contractNo = document.getElementById('contract_no');
+    const startDate = document.getElementById('start_date');
+    const endDate = document.getElementById('end_date');
 
-    /* --------------------------------------------------------------
-       1. CONTRACT TYPE → AUTO CONTRACT NUMBER
-       -------------------------------------------------------------- */
+    // ---- 1. AUTO UPDATE CONTRACT NUMBER ----
     function updateContractNumber() {
         if (!contractType.value) return;
-
-        const prefix      = 'NGOF';
-        const currentNum  = contractNo.value.match(/\d+$/)?.[0] || '001';   // keep existing numeric part
-        const typeCode    = contractType.value.includes('FDC') ? 'FDC' : 'UDC';
-
-        contractNo.value = `${prefix}-${typeCode}/${currentNum}`;
+        const prefix = 'NGOF';
+        const currentNumber = contractNo.value.match(/\d+$/)?.[0] || '001';
+        const typeCode = contractType.value.includes('FDC') ? 'FDC' : 'UDC';
+        contractNo.value = `${prefix}-${typeCode}/${currentNumber}`;
     }
     contractType.addEventListener('change', updateContractNumber);
 
-    /* --------------------------------------------------------------
-       2. FORM VALIDATION
-       -------------------------------------------------------------- */
+    // ---- 2. VALIDATE END DATE >= START DATE ----
+    function validateDates() {
+        if (startDate.value && endDate.value && new Date(endDate.value) < new Date(startDate.value)) {
+            endDate.setCustomValidity('End date must be on or after start date.');
+        } else {
+            endDate.setCustomValidity('');
+        }
+    }
+    startDate.addEventListener('change', validateDates);
+    endDate.addEventListener('change', validateDates);
+
+    // ---- 3. FORM SUBMIT VALIDATION ----
     form.addEventListener('submit', function (e) {
+        validateDates();
         if (!form.checkValidity()) {
             e.preventDefault();
             e.stopPropagation();
         }
         form.classList.add('was-validated');
-
-        // allow readonly salary-words field to be submitted
         document.getElementById('salary_amount_words').removeAttribute('readonly');
     }, false);
 
-    /* --------------------------------------------------------------
-       3. DATE PICKER ICON
-       -------------------------------------------------------------- */
-    document.querySelectorAll('input[type="date"]').forEach(input => {
-        const icon = input.parentElement.querySelector('.input-group-text');
-        if (icon) {
-            icon.addEventListener('click', () => input.showPicker());
-        }
+    // ---- 4. CALENDAR ICON CLICK ----
+    document.querySelectorAll('.input-group-text').forEach(icon => {
+        icon.addEventListener('click', () => {
+            const input = icon.parentElement.querySelector('input[type="date"]');
+            if (input) input.showPicker();
+        });
     });
 
-    /* --------------------------------------------------------------
-       4. START / END DATE CALCULATION
-       -------------------------------------------------------------- */
-    const startDateInput = document.getElementById('start_date');
-    const durationSelect = document.getElementById('duration_months');
-    const endDateDisplay = document.getElementById('end_date_display');
-
-    function calculateEndDate() {
-        const start = startDateInput.value;
-        const months = parseInt(durationSelect.value) || 12;
-        if (!start) {
-            endDateDisplay.value = '';
-            return;
-        }
-        const d = new Date(start + 'T00:00:00');
-        d.setMonth(d.getMonth() + months);
-        d.setDate(0);                     // last day of the previous month
-        endDateDisplay.value = d.toISOString().split('T')[0];
-    }
-    startDateInput.addEventListener('change', calculateEndDate);
-    durationSelect.addEventListener('change', calculateEndDate);
-
-    /* --------------------------------------------------------------
-       5. SALARY → WORDS + FORMATTED DISPLAY
-       -------------------------------------------------------------- */
-    const salaryAmount   = document.getElementById('salary_amount');
-    const salaryWords    = document.getElementById('salary_amount_words');
-    const salaryFormatted= document.getElementById('salary_formatted');
+    // ---- 5. SALARY → WORDS + FORMATTED ----
+    const salaryAmount = document.getElementById('salary_amount');
+    const salaryWords = document.getElementById('salary_amount_words');
+    const salaryFormatted = document.getElementById('salary_formatted');
 
     function numberToWords(num) {
         if (num === 0) return 'Zero';
-        const ones  = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
         const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-        const tens  = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-        const scales= ['', 'Thousand', 'Million', 'Billion'];
+        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+        const scales = ['', 'Thousand', 'Million', 'Billion'];
 
         function chunkToWords(n) {
             let w = '';
             const h = Math.floor(n / 100);
             const r = n % 100;
-            if (h) w += ones[h] + ' Hundred ';
-            if (r) {
+            if (h > 0) w += ones[h] + ' Hundred ';
+            if (r > 0) {
                 if (r < 10) w += ones[r];
                 else if (r < 20) w += teens[r - 10];
                 else {
                     w += tens[Math.floor(r / 10)];
-                    if (r % 10) w += '-' + ones[r % 10].toLowerCase();
+                    if (r % 10 > 0) w += '-' + ones[r % 10];
                 }
             }
             return w.trim();
@@ -375,7 +339,7 @@ document.addEventListener('DOMContentLoaded', function () {
         let scale = 0;
         while (num > 0) {
             const chunk = num % 1000;
-            if (chunk) parts.unshift(chunkToWords(chunk) + (scales[scale] ? ' ' + scales[scale] : ''));
+            if (chunk > 0) parts.unshift(chunkToWords(chunk) + (scales[scale] ? ' ' + scales[scale] : ''));
             num = Math.floor(num / 1000);
             scale++;
         }
@@ -383,32 +347,28 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function convertSalaryToWords() {
-        const val = parseFloat(salaryAmount.value);
-        if (isNaN(val) || val < 0) {
+        const value = parseFloat(salaryAmount.value);
+        if (isNaN(value) || value < 0) {
             salaryWords.value = '';
             salaryFormatted.textContent = '';
             return;
         }
-        const intPart = Math.floor(val);
-        const decPart = Math.round((val - intPart) * 100);
-        let words = numberToWords(intPart) + ' US Dollars';
-        if (decPart) words += ' and ' + numberToWords(decPart) + ' Cents';
+        const integerPart = Math.floor(value);
+        const decimalPart = Math.round((value - integerPart) * 100);
+        let words = numberToWords(integerPart) + ' US Dollars';
+        if (decimalPart > 0) words += ' and ' + numberToWords(decimalPart) + ' Cents';
         words += ' only';
         salaryWords.value = words;
-        salaryFormatted.textContent = 'Formatted: $' + val.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+        salaryFormatted.textContent = 'Formatted: $' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
     salaryAmount.addEventListener('input', convertSalaryToWords);
 
-    /* --------------------------------------------------------------
-       6. AUTO-FILL EMPLOYEE SIGNATURE
-       -------------------------------------------------------------- */
-    const employeeName      = document.getElementById('employee_name');
+    // ---- 6. AUTO-FILL EMPLOYEE SIGNATURE ----
+    const employeeName = document.getElementById('employee_name');
     const employeeSignature = document.getElementById('employee_signature_name');
     employeeName.addEventListener('input', () => employeeSignature.value = employeeName.value);
 
-    /* --------------------------------------------------------------
-       7. DEFAULT ORGANIZATION INFO (only if fields are empty)
-       -------------------------------------------------------------- */
+    // ---- 7. DEFAULT ORGANIZATION INFO ----
     const defaults = {
         organization_name: 'The NGO Forum on Cambodia',
         representative_name: 'Mr. Soeung Saroeun',
@@ -418,17 +378,15 @@ document.addEventListener('DOMContentLoaded', function () {
         organization_email: 'info@ngoforum.org.kh',
         employer_signature_name: 'Mr. Soeung Saroeun'
     };
-    Object.entries(defaults).forEach(([id, val]) => {
-        const el = document.getElementById(id);
-        if (el && !el.value.trim()) el.value = val;
+    Object.entries(defaults).forEach(([k, v]) => {
+        const el = document.getElementById(k);
+        if (el && !el.value.trim()) el.value = v;
     });
 
-    /* --------------------------------------------------------------
-       8. INITIALISE
-       -------------------------------------------------------------- */
-    calculateEndDate();
+    // ---- 8. INITIALIZE ----
+    updateContractNumber();
     convertSalaryToWords();
-    updateContractNumber();          // keep existing number on load
+    validateDates();
 });
 </script>
 {% endblock %}
