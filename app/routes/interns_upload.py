@@ -1,18 +1,21 @@
-# app/routes/interns_upload.py
 import os
+import zipfile
+from io import BytesIO
 from pathlib import Path
 from datetime import date
 from flask import (
     Blueprint, render_template, request, flash,
-    redirect, url_for, send_from_directory, current_app
+    redirect, url_for, send_from_directory, current_app,
+    send_file
 )
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from ..models.uploaded_intern import UploadedIntern
 from .. import db
 
 interns_upload_bp = Blueprint('interns_upload', __name__, url_prefix='/interns')
+
 ALLOWED_EXT = {'docx'}
 UPLOAD_SUBDIR = Path('static') / 'uploads' / 'interns'
 
@@ -22,35 +25,64 @@ def allowed_file(filename: str) -> bool:
 
 
 # ----------------------------------------------------------------------
-# LIST + CARDS
+# LIST + CARDS + FILTERS
 # ----------------------------------------------------------------------
 @interns_upload_bp.route('/uploads')
 @login_required
 def uploads_list():
+    search_query = request.args.get('search', '').strip()
+    sort_order = request.args.get('sort', 'uploaded_at_desc')
+    entries = request.args.get('entries', type=int, default=15)
     page = request.args.get('page', 1, type=int)
-    per_page = 15
 
-    pagination = (
-        UploadedIntern.query
-        .order_by(UploadedIntern.uploaded_at.desc())
-        .paginate(page=page, per_page=per_page, error_out=False)
-    )
+    query = UploadedIntern.query
 
+    # ---- SEARCH ----
+    if search_query:
+        like_term = f"%{search_query}%"
+        query = query.filter(
+            or_(
+                UploadedIntern.original_name.ilike(like_term),
+                UploadedIntern.uploaded_by.ilike(like_term)
+            )
+        )
+
+    # ---- SORT ----
+    if sort_order == 'uploaded_at_desc':
+        query = query.order_by(UploadedIntern.uploaded_at.desc())
+    elif sort_order == 'uploaded_at_asc':
+        query = query.order_by(UploadedIntern.uploaded_at.asc())
+    elif sort_order == 'original_name_asc':
+        query = query.order_by(UploadedIntern.original_name.asc())
+    elif sort_order == 'original_name_desc':
+        query = query.order_by(UploadedIntern.original_name.desc())
+    elif sort_order == 'uploaded_by_asc':
+        query = query.order_by(UploadedIntern.uploaded_by.asc())
+    elif sort_order == 'uploaded_by_desc':
+        query = query.order_by(UploadedIntern.uploaded_by.desc())
+    else:
+        query = query.order_by(UploadedIntern.uploaded_at.desc())
+
+    # ---- PAGINATION ----
+    pagination = query.paginate(page=page, per_page=entries, error_out=False)
+
+    # ---- CARDS ----
     total_uploads = UploadedIntern.query.count()
     today = date.today()
     today_uploads = UploadedIntern.query.filter(
         func.date(UploadedIntern.uploaded_at) == today
     ).count()
-
-    # NEW: full pretty date for the card
-    today_pretty = today.strftime('%d %B %Y')          # 11 November 2025
+    today_pretty = today.strftime('%d %B %Y')
 
     return render_template(
         'interns/uploads.html',
         pagination=pagination,
         total_uploads=total_uploads,
         today_uploads=today_uploads,
-        today_pretty=today_pretty,                    # <-- used in the card
+        today_pretty=today_pretty,
+        search_query=search_query,
+        sort_order=sort_order,
+        entries_per_page=entries,
     )
 
 
@@ -109,14 +141,13 @@ def upload_file():
 
 
 # ----------------------------------------------------------------------
-# DOWNLOAD
+# DOWNLOAD SINGLE
 # ----------------------------------------------------------------------
 @interns_upload_bp.route('/download/<int:file_id>')
 @login_required
 def download(file_id):
     doc = UploadedIntern.query.get_or_404(file_id)
     file_path = Path(current_app.root_path) / UPLOAD_SUBDIR / doc.filename
-
     if not file_path.exists():
         flash('File not found', 'danger')
         return redirect(url_for('interns_upload.uploads_list'))
@@ -126,6 +157,37 @@ def download(file_id):
         path=file_path.name,
         as_attachment=True,
         download_name=doc.original_name
+    )
+
+
+# ----------------------------------------------------------------------
+# DOWNLOAD ALL AS ZIP
+# ----------------------------------------------------------------------
+@interns_upload_bp.route('/download-all-zip')
+@login_required
+def download_all_zip():
+    docs = UploadedIntern.query.all()
+    if not docs:
+        flash('No files to download', 'info')
+        return redirect(url_for('interns_upload.uploads_list'))
+
+    memory_file = BytesIO()
+    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+        upload_dir = Path(current_app.root_path) / UPLOAD_SUBDIR
+        for doc in docs:
+            file_path = upload_dir / doc.filename
+            if file_path.exists():
+                zf.write(file_path, arcname=doc.original_name)
+
+    memory_file.seek(0)
+    today_str = date.today().strftime('%Y%m%d')
+    zip_filename = f"intern_docx_batch_{today_str}.zip"
+
+    return send_file(
+        memory_file,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=zip_filename
     )
 
 
@@ -141,7 +203,6 @@ def delete(file_id):
 
     doc = UploadedIntern.query.get_or_404(file_id)
     file_path = Path(current_app.root_path) / UPLOAD_SUBDIR / doc.filename
-
     try:
         if file_path.exists():
             file_path.unlink()

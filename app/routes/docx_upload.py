@@ -1,14 +1,16 @@
-# app/routes/docx_upload.py
 import os
+import zipfile
+from io import BytesIO
 from pathlib import Path
 from datetime import date
 from flask import (
     Blueprint, render_template, request, flash,
-    redirect, url_for, send_from_directory, current_app
+    redirect, url_for, send_from_directory, current_app,
+    send_file
 )
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from ..models.uploaded_docx import UploadedDocx
 from .. import db
 
@@ -24,29 +26,53 @@ def allowed_file(filename: str) -> bool:
 
 
 # ----------------------------------------------------------------------
-# LIST PAGE + STATS
+# LIST + CARDS + FILTERS
 # ----------------------------------------------------------------------
 @docx_upload_bp.route('/uploads')
 @login_required
 def uploads_list():
+    search_query = request.args.get('search', '').strip()
+    sort_order = request.args.get('sort', 'uploaded_at_desc')
+    entries = request.args.get('entries', type=int, default=15)
     page = request.args.get('page', 1, type=int)
-    per_page = 15
 
-    # Pagination
-    pagination = (
-        UploadedDocx.query
-        .order_by(UploadedDocx.uploaded_at.desc())
-        .paginate(page=page, per_page=per_page, error_out=False)
-    )
+    query = UploadedDocx.query
 
-    # Stats for cards
+    # ---- SEARCH ----
+    if search_query:
+        like_term = f"%{search_query}%"
+        query = query.filter(
+            or_(
+                UploadedDocx.original_name.ilike(like_term),
+                UploadedDocx.uploaded_by.ilike(like_term)
+            )
+        )
+
+    # ---- SORT ----
+    if sort_order == 'uploaded_at_desc':
+        query = query.order_by(UploadedDocx.uploaded_at.desc())
+    elif sort_order == 'uploaded_at_asc':
+        query = query.order_by(UploadedDocx.uploaded_at.asc())
+    elif sort_order == 'original_name_asc':
+        query = query.order_by(UploadedDocx.original_name.asc())
+    elif sort_order == 'original_name_desc':
+        query = query.order_by(UploadedDocx.original_name.desc())
+    elif sort_order == 'uploaded_by_asc':
+        query = query.order_by(UploadedDocx.uploaded_by.asc())
+    elif sort_order == 'uploaded_by_desc':
+        query = query.order_by(UploadedDocx.uploaded_by.desc())
+    else:
+        query = query.order_by(UploadedDocx.uploaded_at.desc())
+
+    # ---- PAGINATION ----
+    pagination = query.paginate(page=page, per_page=entries, error_out=False)
+
+    # ---- CARDS ----
     total_uploads = UploadedDocx.query.count()
     today = date.today()
     today_uploads = UploadedDocx.query.filter(
         func.date(UploadedDocx.uploaded_at) == today
     ).count()
-
-    # Pretty full date: 11 November 2025
     today_pretty = today.strftime('%d %B %Y')
 
     return render_template(
@@ -54,12 +80,15 @@ def uploads_list():
         pagination=pagination,
         total_uploads=total_uploads,
         today_uploads=today_uploads,
-        today_pretty=today_pretty  # used in card
+        today_pretty=today_pretty,
+        search_query=search_query,
+        sort_order=sort_order,
+        entries_per_page=entries,
     )
 
 
 # ----------------------------------------------------------------------
-# UPLOAD (POST)
+# UPLOAD
 # ----------------------------------------------------------------------
 @docx_upload_bp.route('/upload', methods=['POST'])
 @login_required
@@ -73,7 +102,6 @@ def upload_file():
         flash('No files selected', 'warning')
         return redirect(request.referrer or url_for('docx_upload.uploads_list'))
 
-    # Ensure upload directory exists
     upload_dir = Path(current_app.root_path) / UPLOAD_SUBDIR
     upload_dir.mkdir(parents=True, exist_ok=True)
 
@@ -89,8 +117,6 @@ def upload_file():
         base, ext = os.path.splitext(original)
         counter = 1
         filename = original
-
-        # Avoid name collision
         while (upload_dir / filename).exists():
             filename = f"{base}_{counter}{ext}"
             counter += 1
@@ -98,7 +124,6 @@ def upload_file():
         filepath = upload_dir / filename
         file.save(filepath)
 
-        # Save to DB
         doc = UploadedDocx(
             filename=filename,
             original_name=original,
@@ -117,7 +142,7 @@ def upload_file():
 
 
 # ----------------------------------------------------------------------
-# DOWNLOAD
+# DOWNLOAD SINGLE
 # ----------------------------------------------------------------------
 @docx_upload_bp.route('/download/<int:file_id>')
 @login_required
@@ -138,6 +163,37 @@ def download(file_id):
 
 
 # ----------------------------------------------------------------------
+# DOWNLOAD ALL AS ZIP
+# ----------------------------------------------------------------------
+@docx_upload_bp.route('/download-all-zip')
+@login_required
+def download_all_zip():
+    docs = UploadedDocx.query.all()
+    if not docs:
+        flash('No files to download', 'info')
+        return redirect(url_for('docx_upload.uploads_list'))
+
+    memory_file = BytesIO()
+    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+        upload_dir = Path(current_app.root_path) / UPLOAD_SUBDIR
+        for doc in docs:
+            file_path = upload_dir / doc.filename
+            if file_path.exists():
+                zf.write(file_path, arcname=doc.original_name)
+
+    memory_file.seek(0)
+    today_str = date.today().strftime('%Y%m%d')
+    zip_filename = f"consultant_docx_batch_{today_str}.zip"
+
+    return send_file(
+        memory_file,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=zip_filename
+    )
+
+
+# ----------------------------------------------------------------------
 # DELETE (admin only)
 # ----------------------------------------------------------------------
 @docx_upload_bp.route('/delete/<int:file_id>', methods=['POST'])
@@ -150,14 +206,12 @@ def delete(file_id):
     doc = UploadedDocx.query.get_or_404(file_id)
     file_path = Path(current_app.root_path) / UPLOAD_SUBDIR / doc.filename
 
-    # Delete file
     try:
         if file_path.exists():
             file_path.unlink()
     except Exception as e:
         current_app.logger.error(f"Failed to delete file {file_path}: {e}")
 
-    # Delete DB record
     db.session.delete(doc)
     db.session.commit()
 
