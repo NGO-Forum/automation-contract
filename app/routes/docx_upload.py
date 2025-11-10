@@ -46,12 +46,15 @@ def uploads_list():
         func.date(UploadedDocx.uploaded_at) == today
     ).count()
 
+    # Pretty full date: 11 November 2025
+    today_pretty = today.strftime('%d %B %Y')
+
     return render_template(
         'contracts/uploads.html',
         pagination=pagination,
         total_uploads=total_uploads,
         today_uploads=today_uploads,
-        today_date=today.strftime('%b %d, %Y')
+        today_pretty=today_pretty  # used in card
     )
 
 
@@ -76,7 +79,7 @@ def upload_file():
 
     saved = 0
     for file in files:
-        if file.filename == '':
+        if not file.filename:
             continue
         if not allowed_file(file.filename):
             flash(f'Invalid file: {file.filename} – only .docx allowed', 'warning')
@@ -95,17 +98,21 @@ def upload_file():
         filepath = upload_dir / filename
         file.save(filepath)
 
-        # Save to DB – use username, not ID
+        # Save to DB
         doc = UploadedDocx(
             filename=filename,
             original_name=original,
-            uploaded_by=current_user.username  # ← FIXED: string, no FK
+            uploaded_by=current_user.username
         )
         db.session.add(doc)
         saved += 1
 
-    db.session.commit()
-    flash(f'{saved} file(s) uploaded successfully', 'success')
+    if saved:
+        db.session.commit()
+        flash(f'{saved} file(s) uploaded successfully', 'success')
+    else:
+        flash('No valid files uploaded', 'warning')
+
     return redirect(url_for('docx_upload.uploads_list'))
 
 

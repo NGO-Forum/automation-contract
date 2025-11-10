@@ -22,7 +22,9 @@ def allowed_file(filename: str) -> bool:
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXT
 
 
+# ----------------------------------------------------------------------
 # LIST + CARDS
+# ----------------------------------------------------------------------
 @employees_upload_bp.route('/uploads')
 @login_required
 def uploads_list():
@@ -41,16 +43,21 @@ def uploads_list():
         func.date(UploadedEmployee.uploaded_at) == today
     ).count()
 
+    # Pretty full date: 11 November 2025
+    today_pretty = today.strftime('%d %B %Y')
+
     return render_template(
         'employees/uploads.html',
         pagination=pagination,
         total_uploads=total_uploads,
         today_uploads=today_uploads,
-        today_date=today.strftime('%b %d, %Y')
+        today_pretty=today_pretty,  # used in card
     )
 
 
+# ----------------------------------------------------------------------
 # UPLOAD
+# ----------------------------------------------------------------------
 @employees_upload_bp.route('/upload', methods=['POST'])
 @login_required
 def upload_file():
@@ -68,7 +75,7 @@ def upload_file():
 
     saved = 0
     for file in files:
-        if file.filename == '':
+        if not file.filename:
             continue
         if not allowed_file(file.filename):
             flash(f'Invalid: {file.filename} – only .docx', 'warning')
@@ -102,7 +109,9 @@ def upload_file():
     return redirect(url_for('employees_upload.uploads_list'))
 
 
+# ----------------------------------------------------------------------
 # DOWNLOAD
+# ----------------------------------------------------------------------
 @employees_upload_bp.route('/download/<int:file_id>')
 @login_required
 def download(file_id):
@@ -121,7 +130,9 @@ def download(file_id):
     )
 
 
+# ----------------------------------------------------------------------
 # DELETE (Admin only)
+# ----------------------------------------------------------------------
 @employees_upload_bp.route('/delete/<int:file_id>', methods=['POST'])
 @login_required
 def delete(file_id):

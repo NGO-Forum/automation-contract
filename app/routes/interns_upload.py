@@ -13,7 +13,6 @@ from ..models.uploaded_intern import UploadedIntern
 from .. import db
 
 interns_upload_bp = Blueprint('interns_upload', __name__, url_prefix='/interns')
-
 ALLOWED_EXT = {'docx'}
 UPLOAD_SUBDIR = Path('static') / 'uploads' / 'interns'
 
@@ -22,7 +21,9 @@ def allowed_file(filename: str) -> bool:
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXT
 
 
+# ----------------------------------------------------------------------
 # LIST + CARDS
+# ----------------------------------------------------------------------
 @interns_upload_bp.route('/uploads')
 @login_required
 def uploads_list():
@@ -41,16 +42,21 @@ def uploads_list():
         func.date(UploadedIntern.uploaded_at) == today
     ).count()
 
+    # NEW: full pretty date for the card
+    today_pretty = today.strftime('%d %B %Y')          # 11 November 2025
+
     return render_template(
         'interns/uploads.html',
         pagination=pagination,
         total_uploads=total_uploads,
         today_uploads=today_uploads,
-        today_date=today.strftime('%b %d, %Y')
+        today_pretty=today_pretty,                    # <-- used in the card
     )
 
 
+# ----------------------------------------------------------------------
 # UPLOAD
+# ----------------------------------------------------------------------
 @interns_upload_bp.route('/upload', methods=['POST'])
 @login_required
 def upload_file():
@@ -68,7 +74,7 @@ def upload_file():
 
     saved = 0
     for file in files:
-        if file.filename == '':
+        if not file.filename:
             continue
         if not allowed_file(file.filename):
             flash(f'Invalid: {file.filename} – only .docx', 'warning')
@@ -102,7 +108,9 @@ def upload_file():
     return redirect(url_for('interns_upload.uploads_list'))
 
 
+# ----------------------------------------------------------------------
 # DOWNLOAD
+# ----------------------------------------------------------------------
 @interns_upload_bp.route('/download/<int:file_id>')
 @login_required
 def download(file_id):
@@ -121,7 +129,9 @@ def download(file_id):
     )
 
 
+# ----------------------------------------------------------------------
 # DELETE (Admin only)
+# ----------------------------------------------------------------------
 @interns_upload_bp.route('/delete/<int:file_id>', methods=['POST'])
 @login_required
 def delete(file_id):
