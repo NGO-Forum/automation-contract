@@ -90,3 +90,11 @@
 .select2-container--default .select2-selection--single .select2-selection__rendered {
     line-height: 1.5;
 }
+/* DOCX upload modal */
+#uploadDocxModal .modal-header {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+}
+#uploadDocxModal .form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 .2rem rgba(0,123,255,.25);
+}

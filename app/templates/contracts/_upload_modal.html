@@ -1,0 +1,25 @@
+{% macro upload_modal() %}
+<div class="modal fade" id="uploadDocxModal" tabindex="-1" aria-labelledby="uploadDocxModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form action="{{ url_for('docx_upload.upload_file') }}" method="post" enctype="multipart/form-data">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="uploadDocxModalLabel">Upload Consultant DOCX</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="files" class="form-label">Select DOCX files (multiple allowed)</label>
+            <input class="form-control" type="file" name="files" id="files" multiple accept=".docx" required>
+            <div class="form-text">Only *.docx files are accepted.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Upload</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endmacro %}
