@@ -80,8 +80,7 @@
                     <li><h6 class="dropdown-header">Interns</h6></li>
                     <li><a class="dropdown-item" href="{{ url_for('interns.index') }}">Intern Contracts</a></li>
                     <li><a class="dropdown-item" href="{{ url_for('interns.create') }}">Create Contract</a></li>
-                    <li><a class="dropdown-item" href="#">
-                      <i class='bx bx-upload'></i>Upload Interns </a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('interns_upload.uploads_list') }}"><i class='bx bx-upload'></i>Upload Interns</a></li>
                   </ul>
                 </li>
               {% endif %}
