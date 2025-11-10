@@ -61,6 +61,7 @@ def create_app():
     from .routes.employees import employees_bp
     # <<< NEW BLUEPRINT >>>
     from .routes.docx_upload import docx_upload_bp
+    from .routes.employees_upload import employees_upload_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(main_bp)
@@ -76,6 +77,8 @@ def create_app():
     # <<< NEW BLUEPRINT >>>
     app.register_blueprint(docx_upload_bp, url_prefix="/contracts")
 
+    app.register_blueprint(employees_upload_bp, url_prefix="/employees")
+
     # ------------------------------------------------------------------
     # Import models (only after db is attached)
     # ------------------------------------------------------------------
@@ -89,6 +92,7 @@ def create_app():
     from .models.employees import Employee
     # <<< NEW MODEL >>>
     from .models.uploaded_docx import UploadedDocx
+    from .models.uploaded_employee import UploadedEmployee
 
     # ------------------------------------------------------------------
     # Flask-Login user loader
