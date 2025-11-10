@@ -1,14 +1,16 @@
-# app/routes/employees_upload.py
 import os
+import zipfile
+from io import BytesIO
 from pathlib import Path
 from datetime import date
 from flask import (
     Blueprint, render_template, request, flash,
-    redirect, url_for, send_from_directory, current_app
+    redirect, url_for, send_from_directory, current_app,
+    send_file, Response
 )
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from ..models.uploaded_employee import UploadedEmployee
 from .. import db
 
@@ -23,27 +25,49 @@ def allowed_file(filename: str) -> bool:
 
 
 # ----------------------------------------------------------------------
-# LIST + CARDS
+# LIST + CARDS + FILTERS
 # ----------------------------------------------------------------------
 @employees_upload_bp.route('/uploads')
 @login_required
 def uploads_list():
-    page = request.args.get('page', 1, type=int)
-    per_page = 15
+    search_query = request.args.get('search', '').strip()
+    sort_order   = request.args.get('sort', 'uploaded_at_desc')
+    entries      = request.args.get('entries', type=int, default=15)
+    page         = request.args.get('page', 1, type=int)
 
-    pagination = (
-        UploadedEmployee.query
-        .order_by(UploadedEmployee.uploaded_at.desc())
-        .paginate(page=page, per_page=per_page, error_out=False)
-    )
+    query = UploadedEmployee.query
+
+    if search_query:
+        like_term = f"%{search_query}%"
+        query = query.filter(
+            or_(
+                UploadedEmployee.original_name.ilike(like_term),
+                UploadedEmployee.uploaded_by.ilike(like_term)
+            )
+        )
+
+    if sort_order == 'uploaded_at_desc':
+        query = query.order_by(UploadedEmployee.uploaded_at.desc())
+    elif sort_order == 'uploaded_at_asc':
+        query = query.order_by(UploadedEmployee.uploaded_at.asc())
+    elif sort_order == 'original_name_asc':
+        query = query.order_by(UploadedEmployee.original_name.asc())
+    elif sort_order == 'original_name_desc':
+        query = query.order_by(UploadedEmployee.original_name.desc())
+    elif sort_order == 'uploaded_by_asc':
+        query = query.order_by(UploadedEmployee.uploaded_by.asc())
+    elif sort_order == 'uploaded_by_desc':
+        query = query.order_by(UploadedEmployee.uploaded_by.desc())
+    else:
+        query = query.order_by(UploadedEmployee.uploaded_at.desc())
+
+    pagination = query.paginate(page=page, per_page=entries, error_out=False)
 
     total_uploads = UploadedEmployee.query.count()
     today = date.today()
     today_uploads = UploadedEmployee.query.filter(
         func.date(UploadedEmployee.uploaded_at) == today
     ).count()
-
-    # Pretty full date: 11 November 2025
     today_pretty = today.strftime('%d %B %Y')
 
     return render_template(
@@ -51,7 +75,10 @@ def uploads_list():
         pagination=pagination,
         total_uploads=total_uploads,
         today_uploads=today_uploads,
-        today_pretty=today_pretty,  # used in card
+        today_pretty=today_pretty,
+        search_query=search_query,
+        sort_order=sort_order,
+        entries_per_page=entries,
     )
 
 
@@ -110,14 +137,13 @@ def upload_file():
 
 
 # ----------------------------------------------------------------------
-# DOWNLOAD
+# DOWNLOAD SINGLE
 # ----------------------------------------------------------------------
 @employees_upload_bp.route('/download/<int:file_id>')
 @login_required
 def download(file_id):
     doc = UploadedEmployee.query.get_or_404(file_id)
     file_path = Path(current_app.root_path) / UPLOAD_SUBDIR / doc.filename
-
     if not file_path.exists():
         flash('File not found', 'danger')
         return redirect(url_for('employees_upload.uploads_list'))
@@ -127,6 +153,38 @@ def download(file_id):
         path=file_path.name,
         as_attachment=True,
         download_name=doc.original_name
+    )
+
+
+# ----------------------------------------------------------------------
+# DOWNLOAD ALL AS ZIP
+# ----------------------------------------------------------------------
+@employees_upload_bp.route('/download-all-zip')
+@login_required
+def download_all_zip():
+    # Get all uploaded files
+    docs = UploadedEmployee.query.all()
+    if not docs:
+        flash('No files to download', 'info')
+        return redirect(url_for('employees_upload.uploads_list'))
+
+    memory_file = BytesIO()
+    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+        upload_dir = Path(current_app.root_path) / UPLOAD_SUBDIR
+        for doc in docs:
+            file_path = upload_dir / doc.filename
+            if file_path.exists():
+                zf.write(file_path, arcname=doc.original_name)
+
+    memory_file.seek(0)
+    today_str = date.today().strftime('%Y%m%d')
+    zip_filename = f"employee_docx_batch_{today_str}.zip"
+
+    return send_file(
+        memory_file,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=zip_filename
     )
 
 
@@ -142,7 +200,6 @@ def delete(file_id):
 
     doc = UploadedEmployee.query.get_or_404(file_id)
     file_path = Path(current_app.root_path) / UPLOAD_SUBDIR / doc.filename
-
     try:
         if file_path.exists():
             file_path.unlink()
