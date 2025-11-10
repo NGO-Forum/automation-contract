@@ -61,7 +61,7 @@
           <tr>
             <th>File</th>
             <th>Uploaded By</th>
-            <th>Uploaded At</th>
+            <th class="d-none d-md-table-cell">Uploaded At</th>  <!-- HIDDEN ON MOBILE -->
             <th class="text-center">Actions</th>
           </tr>
         </thead>
@@ -70,7 +70,7 @@
           <tr>
             <td><i class='bx bxs-file-doc'></i> {{ doc.original_name }}</td>
             <td>{{ doc.uploaded_by }}</td>
-            <td>{{ doc.uploaded_at }}</td>
+            <td class="d-none d-md-table-cell">{{ doc.uploaded_at }}</td>  <!-- HIDDEN ON MOBILE -->
             <td class="text-center">
               <div class="dropdown">
                 <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
@@ -146,7 +146,7 @@
               <a class="page-link" href="{{ url_for('docx_upload.uploads_list', page=p) }}">{{ p }}</a>
             </li>
           {% else %}
-            <li class="page-item disabled"><span class="page-link">…</span></li>
+            <li class="page-item disabled"><span class="page-link">...</span></li>
           {% endif %}
         {% endfor %}
 

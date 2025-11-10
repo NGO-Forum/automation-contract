@@ -372,7 +372,7 @@ def download_docx(id):
         output = io.BytesIO()
         doc.save(output)
         output.seek(0)
-        filename = f"{intern.intern_name.replace(' ', '_')}_Internship_Agreement.docx"
+        filename = f"{intern.intern_name.replace(' ', '_')}_Agreement.docx"
         return send_file(
             output,
             as_attachment=True,
@@ -406,13 +406,13 @@ def download_all_docx():
                 file_stream = io.BytesIO()
                 doc.save(file_stream)
                 file_stream.seek(0)
-                filename = f"{intern.intern_name.replace(' ', '_')}_Internship_Agreement.docx"
+                filename = f"{intern.intern_name.replace(' ', '_')}_Agreement.docx"
                 zip_file.writestr(filename, file_stream.read())
         zip_buffer.seek(0)
         return send_file(
             zip_buffer,
             as_attachment=True,
-            download_name="All_Internship_Agreements.zip",
+            download_name="All_Agreements.zip",
             mimetype="application/zip"
         )
     except Exception as e:
