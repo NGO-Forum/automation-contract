@@ -183,7 +183,7 @@ def download_all_zip():
 
     memory_file.seek(0)
     today_str = date.today().strftime('%Y%m%d')
-    zip_filename = f"consultant_docx_batch_{today_str}.zip"
+    zip_filename = f"consultant_docx.zip"
 
     return send_file(
         memory_file,
