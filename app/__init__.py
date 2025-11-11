@@ -133,5 +133,9 @@ def create_app():
     def internal_error(error):
         db.sessionrollback()          # rollback on error
         return render_template('errors/500.html'), 500
+    @app.errorhandler(502)
+    def bad_gateway(error):
+        return render_template('errors/502.html'), 502
+
 
     return app
