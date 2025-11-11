@@ -142,7 +142,10 @@
                                     <li><a class="dropdown-item" href="{{ url_for('contracts.view', contract_id=contract.id) }}"><i class="bx bx-show"></i> View</a></li>
                                     <li><a class="dropdown-item" href="{{ url_for('contracts.update', contract_id=contract.id) }}"><i class="bx bx-edit"></i> Edit</a></li>
                                     <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#downloadConfirmModal{{ contract.id }}" data-contract-number="{{ contract.contract_number or 'N/A' }}"><i class="bx bx-download"></i> Download Docx</a></li>
-                                    <!--<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#sendEmailModal" data-contract-id="{{ contract.id }}"><i class="bx bx-envelope"></i> Send via Email</a></li>-->
+                                   {% if is_admin %}
+                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#sendEmailModal" data-contract-id="{{ contract.id }}"><i class="bx bx-envelope"></i> Send via Email</a></li>
+                                    {% endif %}
+
                                     <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal{{ contract.id }}"><i class="bx bx-trash"></i> Delete</a></li>
                                 </ul>
                             </div>
