@@ -3,6 +3,10 @@
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/contract.css') }}" />
 
+<!-- TomSelect CSS + JS (lightweight, modern autocomplete) -->
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
 <div class="container mt-4">
     <!-- Total Contracts Cards -->
     <div class="row mb-4 cards-row">
@@ -142,10 +146,9 @@
                                     <li><a class="dropdown-item" href="{{ url_for('contracts.view', contract_id=contract.id) }}"><i class="bx bx-show"></i> View</a></li>
                                     <li><a class="dropdown-item" href="{{ url_for('contracts.update', contract_id=contract.id) }}"><i class="bx bx-edit"></i> Edit</a></li>
                                     <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#downloadConfirmModal{{ contract.id }}" data-contract-number="{{ contract.contract_number or 'N/A' }}"><i class="bx bx-download"></i> Download Docx</a></li>
-                                   {% if is_admin %}
+                                    {% if is_admin %}
                                     <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#sendEmailModal" data-contract-id="{{ contract.id }}"><i class="bx bx-envelope"></i> Send via Email</a></li>
                                     {% endif %}
-
                                     <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal{{ contract.id }}"><i class="bx bx-trash"></i> Delete</a></li>
                                 </ul>
                             </div>
@@ -208,26 +211,29 @@
                     <div class="modal-body">
                         <form id="sendEmailForm" action="{{ url_for('contracts.send_docx') }}" method="POST">
                             <div class="mb-3">
-                                <label for="toEmail" class="form-label">To (required, comma-separated for multiple)</label>
-                                <input type="text" class="form-control" id="toEmail" name="to_emails" placeholder="example1@gmail.com, example2@gmail.com" required>
-                                <small class="form-text text-muted">Enter primary recipient emails, separated by commas.</small>
+                                <label for="toEmail" class="form-label">To <span class="text-danger">*</span></label>
+                                <select id="toEmail" name="to_emails" multiple required placeholder="Type name or email..."></select>
+                                <small class="form-text text-muted">Start typing a name (e.g. "Chet") to see suggestions.</small>
                             </div>
+
                             <div class="mb-3">
                                 <a href="#" id="toggleCc" class="text-primary text-decoration-none"><i class="bx bx-plus-circle"></i> Add CC</a>
-                                <div id="ccInputGroup" class="mt-2 d-none fade">
-                                    <label for="ccEmail" class="form-label">CC (optional, comma-separated)</label>
-                                    <input type="text" class="form-control" id="ccEmail" name="cc_emails" placeholder="example1@gmail.com, example2@gmail.com">
-                                    <small class="form-text text-muted">Enter carbon copy emails, separated by commas.</small>
+                                <div id="ccInputGroup" class="mt-2 d-none">
+                                    <label for="ccEmail" class="form-label">CC</label>
+                                    <select id="ccEmail" name="cc_emails" multiple placeholder="Type name or email..."></select>
+                                    <small class="form-text text-muted">Optional. Multiple allowed.</small>
                                 </div>
                             </div>
+
                             <div class="mb-3">
                                 <a href="#" id="toggleBcc" class="text-primary text-decoration-none"><i class="bx bx-plus-circle"></i> Add BCC</a>
-                                <div id="bccInputGroup" class="mt-2 d-none fade">
-                                    <label for="bccEmail" class="form-label">BCC (optional, comma-separated)</label>
-                                    <input type="text" class="form-control" id="bccEmail" name="bcc_emails" placeholder="example1@gmail.com, example2@gmail.com">
-                                    <small class="form-text text-muted">Enter blind carbon copy emails, separated by commas.</small>
+                                <div id="bccInputGroup" class="mt-2 d-none">
+                                    <label for="bccEmail" class="form-label">BCC</label>
+                                    <select id="bccEmail" name="bcc_emails" multiple placeholder="Type name or email..."></select>
+                                    <small class="form-text text-muted">Optional. Multiple allowed.</small>
                                 </div>
                             </div>
+
                             <input type="hidden" id="contractId" name="contract_id">
                             <button type="submit" class="btn btn-primary">Send Email</button>
                         </form>
@@ -273,9 +279,115 @@
     </div>
 </div>
 
-<!-- JavaScript for Search, Modals, and Email Form -->
+<!-- ==================== JAVASCRIPT ==================== -->
 <script>
-    // Debounce function to limit search input events
+    // List of known emails with labels (name extracted from email)
+    const emailOptions = [
+        { value: "chettana@ngoforum.org.kh", label: "Chettana" },
+        { value: "saroeun@ngoforum.org.kh", label: "Saroeun" },
+        { value: "vicheth@ngoforum.org.kh", label: "Vicheth" },
+        { value: "somaly@ngoforum.org.kh", label: "Somaly" },
+        { value: "sophal@ngoforum.org.kh", label: "Sophal" },
+        { value: "leaksopor@ngoforum.org.kh", label: "Leaksopor" },
+        { value: "sereymongkol@ngoforum.org.kh", label: "Sereymongkol" },
+        { value: "sochea@ngoforum.org.kh", label: "Sochea" },
+        { value: "sochoeun@ngoforum.org.kh", label: "Sochoeun" },
+        { value: "sreynich@ngoforum.org.kh", label: "Sreynich" },
+        { value: "chhea@ngoforum.org.kh", label: "Chhea" },
+        { value: "mengseu@ngoforum.org.kh", label: "Mengseu" },
+        { value: "romas@ngoforum.org.kh", label: "Romas" },
+        { value: "sollyhorng@ngoforum.org.kh", label: "Sollyhorng" },
+        { value: "tola@ngoforum.org.kh", label: "Tola" },
+        { value: "borey@ngoforum.org.kh", label: "Borey" },
+        { value: "bunna@ngoforum.org.kh", label: "Bunna" }
+    ];
+
+    // Initialize TomSelect for email fields
+    function initEmailSelect(id) {
+        return new TomSelect(id, {
+            options: emailOptions,
+            create: true,
+            createOnBlur: true,
+            maxItems: null,
+            placeholder: "Type name or email...",
+            searchField: ['label', 'value'],
+            render: {
+                option: function(data, escape) {
+                    return `<div><strong>${escape(data.label)}</strong><br><small class="text-muted">${escape(data.value)}</small></div>`;
+                },
+                item: function(data, escape) {
+                    return `<div title="${escape(data.value)}">${escape(data.label)}</div>`;
+                }
+            }
+        });
+    }
+
+    let toSelect, ccSelect, bccSelect;
+
+    // Initialize on modal show
+    const sendEmailModal = document.getElementById('sendEmailModal');
+    sendEmailModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const contractId = button.getAttribute('data-contract-id');
+        document.getElementById('contractId').value = contractId;
+
+        // Destroy previous instances
+        [toSelect, ccSelect, bccSelect].forEach(s => s && s.destroy());
+
+        // Re-init
+        toSelect = initEmailSelect('#toEmail');
+        ccSelect = initEmailSelect('#ccEmail');
+        bccSelect = initEmailSelect('#bccEmail');
+
+        // Reset CC/BCC visibility
+        document.getElementById('ccInputGroup').classList.add('d-none');
+        document.getElementById('bccInputGroup').classList.add('d-none');
+    });
+
+    // Toggle CC
+    document.getElementById('toggleCc').addEventListener('click', e => {
+        e.preventDefault();
+        const grp = document.getElementById('ccInputGroup');
+        grp.classList.toggle('d-none');
+        if (!grp.classList.contains('d-none')) {
+            setTimeout(() => ccSelect && ccSelect.focus(), 100);
+        }
+    });
+
+    // Toggle BCC
+    document.getElementById('toggleBcc').addEventListener('click', e => {
+        e.preventDefault();
+        const grp = document.getElementById('bccInputGroup');
+        grp.classList.toggle('d-none');
+        if (!grp.classList.contains('d-none')) {
+            setTimeout(() => bccSelect && bccSelect.focus(), 100);
+        }
+    });
+
+    // Form validation
+    document.getElementById('sendEmailForm').addEventListener('submit', function(e) {
+        const toItems = toSelect ? toSelect.items : [];
+        if (!toItems || toItems.length === 0) {
+            e.preventDefault();
+            alert('Please add at least one recipient in "To".');
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const allEmails = [...toItems];
+        if (ccSelect) allEmails.push(...ccSelect.items);
+        if (bccSelect) allEmails.push(...bccSelect.items);
+
+        for (const email of allEmails) {
+            if (!emailRegex.test(email)) {
+                e.preventDefault();
+                alert(`Invalid email: ${email}`);
+                return;
+            }
+        }
+    });
+
+    // Search debounce
     function debounce(func, wait) {
         let timeout;
         return function (...args) {
@@ -284,101 +396,36 @@
         };
     }
 
-    // Search functionality
-    const searchForm = document.getElementById('filterForm');
     const searchInput = document.getElementById('searchInput');
     const clearSearch = document.getElementById('clearSearch');
     const searchSpinner = document.getElementById('searchSpinner');
+    const filterForm = document.getElementById('filterForm');
 
     searchInput.addEventListener('input', debounce(() => {
         searchSpinner.style.display = 'block';
         clearSearch.classList.toggle('d-none', !searchInput.value);
-        searchForm.submit();
+        filterForm.submit();
     }, 500));
 
     clearSearch.addEventListener('click', () => {
         searchInput.value = '';
         clearSearch.classList.add('d-none');
-        searchForm.submit();
+        filterForm.submit();
     });
 
     window.addEventListener('load', () => {
         searchSpinner.style.display = 'none';
     });
 
-    // Send Email Modal - Set contract_id and reset inputs
-    const sendEmailModal = document.getElementById('sendEmailModal');
-    sendEmailModal.addEventListener('show.bs.modal', event => {
-        const button = event.relatedTarget;
-        const contractId = button.getAttribute('data-contract-id');
-        const modalContractId = sendEmailModal.querySelector('#contractId');
-        modalContractId.value = contractId;
-
-        // Reset CC and BCC inputs
-        const ccInputGroup = document.getElementById('ccInputGroup');
-        const bccInputGroup = document.getElementById('bccInputGroup');
-        const ccEmail = document.getElementById('ccEmail');
-        const bccEmail = document.getElementById('bccEmail');
-        ccInputGroup.classList.add('d-none');
-        bccInputGroup.classList.add('d-none');
-        ccEmail.value = '';
-        bccEmail.value = '';
-    });
-
-    // Toggle CC input
-    const toggleCc = document.getElementById('toggleCc');
-    toggleCc.addEventListener('click', event => {
-        event.preventDefault();
-        const ccInputGroup = document.getElementById('ccInputGroup');
-        ccInputGroup.classList.toggle('d-none');
-        ccInputGroup.classList.toggle('fade');
-        if (!ccInputGroup.classList.contains('d-none')) {
-            document.getElementById('ccEmail').focus();
-        }
-    });
-
-    // Toggle BCC input
-    const toggleBcc = document.getElementById('toggleBcc');
-    toggleBcc.addEventListener('click', event => {
-        event.preventDefault();
-        const bccInputGroup = document.getElementById('bccInputGroup');
-        bccInputGroup.classList.toggle('d-none');
-        bccInputGroup.classList.toggle('fade');
-        if (!bccInputGroup.classList.contains('d-none')) {
-            document.getElementById('bccEmail').focus();
-        }
-    });
-
-    // Email form validation
-    const sendEmailForm = document.getElementById('sendEmailForm');
-    sendEmailForm.addEventListener('submit', event => {
-        const toEmail = document.getElementById('toEmail').value.trim();
-        if (!toEmail) {
-            event.preventDefault();
-            alert('Please provide at least one "To" email address.');
-            return;
-        }
-        // Basic email format validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const toEmails = toEmail.split(',').map(email => email.trim());
-        for (const email of toEmails) {
-            if (!emailRegex.test(email)) {
-                event.preventDefault();
-                alert(`Invalid email address: ${email}`);
-                return;
-            }
-        }
-    });
-
-    // Download Modal - Set contract number dynamically
+    // Download modal contract number
     document.querySelectorAll('[data-bs-target^="#downloadConfirmModal"]').forEach(button => {
-        button.addEventListener('click', event => {
-            const contractNumber = event.currentTarget.getAttribute('data-contract-number');
-            const modal = document.querySelector(event.currentTarget.getAttribute('data-bs-target'));
-            const titleSpan = modal.querySelector('.modal-title span');
-            const bodySpan = modal.querySelector('.modal-body strong');
-            if (titleSpan) titleSpan.textContent = contractNumber;
-            if (bodySpan) bodySpan.textContent = contractNumber;
+        button.addEventListener('click', function () {
+            const contractNumber = this.getAttribute('data-contract-number');
+            const modalId = this.getAttribute('data-bs-target');
+            const modal = document.querySelector(modalId);
+            modal.querySelectorAll('[id^="contractNumber"]').forEach(el => {
+                el.textContent = contractNumber;
+            });
         });
     });
 </script>
