@@ -377,7 +377,7 @@ def download_all_docx():
     return send_file(
         zip_buffer,
         as_attachment=True,
-        download_name=f"All_Contracts_{date.today():%Y%m%d}.zip",
+        download_name=f"All_Contracts.zip",
         mimetype='application/zip'
     )
 
