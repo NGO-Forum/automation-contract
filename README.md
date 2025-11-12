@@ -10,3 +10,28 @@ Step how to working with this project automation system
 -The last step run the project by command py run.py or python run.py
 
 -click on the link output copy or ctrl + mouse click show on the browser
+
+folder structure project 
+automation-contract/
+│
+├── app/                     # Main Flask application (routes, models, templates, static files)
+│
+├── migrations/              # Flask-Migrate database migration files
+│
+├── scripts/                 # Custom scripts or automation helpers
+│
+├── venv/                    # Python virtual environment (auto-created, not versioned)
+│
+├── .env                     # Environment variables configuration file
+│
+├── .gitignore               # Files and folders to be ignored by Git
+│
+├── docker-compose.yml       # Docker Compose setup for containerized environment
+│
+├── Dockerfile               # Instructions for building the Docker image
+│
+├── README.md                # Project documentation file
+│
+├── requirements.txt         # Python dependencies list
+│
+└── run.py                   # Flask application entry point
