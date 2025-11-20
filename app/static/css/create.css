@@ -184,3 +184,13 @@ input[type="date"] {
             font-size: 0.95rem;
         }
     }
+    #employee-suggestions .dropdown-item {
+    border-bottom: 1px solid #eee;
+    white-space: normal;
+}
+#employee-suggestions .dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+#employee-suggestions .dropdown-item small {
+    font-size: 0.85em;
+}

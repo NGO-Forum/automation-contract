@@ -1,7 +1,7 @@
 # routes/employees.py
 from flask import (
     Blueprint, render_template, request, redirect, url_for,
-    flash, send_file, current_app
+    flash, send_file, current_app,jsonify
 )
 from flask_login import login_required, current_user
 from app import db
@@ -207,7 +207,30 @@ def create():
         form_data['thirteenth_month_salary'] = 'thirteenth_month_salary' in request.form
 
     return render_template('employees/create.html', form_data=form_data)
-
+@employees_bp.route('/api/employees/search')
+@login_required
+def api_search_employees():
+    query = request.args.get('q', '').strip()
+    if not query:
+        return jsonify([])
+    
+    employees = Employee.query.filter(
+        Employee.employee_name.ilike(f'%{query}%'),
+        Employee.deleted_at.is_(None)
+    ).order_by(Employee.employee_name).limit(10).all()
+    
+    results = []
+    for emp in employees:
+        results.append({
+            'id': emp.id,
+            'name': emp.employee_name,
+            'position': emp.position_title or '',
+            'address': emp.employee_address or '',
+            'phone': emp.employee_tel or '',
+            'email': emp.employee_email or ''
+        })
+    
+    return jsonify(results)
 
 @employees_bp.route('/<string:id>')
 @login_required

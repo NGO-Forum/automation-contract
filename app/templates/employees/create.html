@@ -22,11 +22,24 @@
                 <hr>
             </div>
             <div class="row g-3 mb-4">
-                <div class="col-md-6">
+                <div class="col-md-6 position-relative">
                     <label for="employee_name" class="form-label fw-bold">Full Name (Title Including) <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="employee_name" name="employee_name"
-                           value="{{ form_data.employee_name | default('') }}" placeholder="e.g., Mr. Chan Vicheth" required>
+                    <input 
+                        type="text" 
+                        class="form-control" 
+                        id="employee_name" 
+                        name="employee_name"
+                        value="{{ form_data.employee_name | default('') }}" 
+                        placeholder="Type employee name..." 
+                        autocomplete="off"
+                        required>
                     <div class="invalid-feedback">Please enter full name (including title).</div>
+
+                    <!-- Autocomplete Dropdown -->
+                    <div id="employee-suggestions" 
+                        class="dropdown-menu w-100" 
+                        style="max-height: 300px; overflow-y: auto; display: none;">
+                    </div>
                 </div>
                 <div class="col-md-6">
                     <label for="position_title" class="form-label fw-bold">Position <span class="text-danger">*</span></label>
@@ -258,20 +271,93 @@ document.addEventListener('DOMContentLoaded', function () {
     const salaryAmount = document.getElementById('salary_amount');
     const salaryWords = document.getElementById('salary_amount_words');
     const salaryFormatted = document.getElementById('salary_formatted');
-    const employeeName = document.getElementById('employee_name');
+    const employeeNameInput = document.getElementById('employee_name');
     const employeeSignature = document.getElementById('employee_signature_name');
+    const suggestionsBox = document.getElementById('employee-suggestions');
 
-    // ---- Update Contract Number on Type Change ----
+    // === AUTOCOMPLETE EMPLOYEE SEARCH ===
+    let debounceTimer;
+    employeeNameInput.addEventListener('input', function () {
+        const query = this.value.trim();
+        clearTimeout(debounceTimer);
+        
+        if (query.length < 2) {
+            suggestionsBox.style.display = 'none';
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            fetch(`/employees/api/employees/search?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    suggestionsBox.innerHTML = '';
+                    if (data.length === 0) {
+                        suggestionsBox.style.display = 'none';
+                        return;
+                    }
+
+                    data.forEach(emp => {
+                        const item = document.createElement('a');
+                        item.className = 'dropdown-item py-2';
+                        item.href = '#';
+                        item.innerHTML = `
+                            <strong>${escapeHtml(emp.name)}</strong><br>
+                            <small class="text-muted">
+                                ${escapeHtml(emp.position)} | ${escapeHtml(emp.phone || 'No phone')} | ${escapeHtml(emp.email || 'No email')}
+                            </small>
+                        `;
+                        item.onclick = (e) => {
+                            e.preventDefault();
+                            fillEmployeeData(emp);
+                            suggestionsBox.style.display = 'none';
+                            employeeNameInput.value = emp.name;
+                        };
+                        suggestionsBox.appendChild(item);
+                    });
+
+                    suggestionsBox.style.display = 'block';
+                })
+                .catch(err => {
+                    console.error('Search failed:', err);
+                    suggestionsBox.style.display = 'none';
+                });
+        }, 300);
+    });
+
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!employeeNameInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+            suggestionsBox.style.display = 'none';
+        }
+    });
+
+    // Fill form with selected employee data
+    function fillEmployeeData(emp) {
+        document.getElementById('position_title').value = emp.position || '';
+        document.getElementById('employee_address').value = emp.address || '';
+        document.getElementById('employee_tel').value = emp.phone || '';
+        document.getElementById('employee_email').value = emp.email || '';
+        if (!employeeSignature.value) {
+            employeeSignature.value = emp.name;
+        }
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // === REST OF YOUR EXISTING JS (unchanged but improved) ===
     function updateContractNumber() {
         if (!contractType.value) return;
         const prefix = 'NGOF';
         const typeCode = contractType.value.includes('FDC') ? 'FDC' : 'UDC';
         const currentNum = contractNo.value.match(/\d+$/)?.[0] || '001';
-        contractNo.value = `${prefix}-${typeCode}/${currentNum}`;
+        contractNo.value = `${prefix}-${typeCode}/${currentNum.padStart(3, '0')}`;
     }
-    contractType.addEventListener('change', updateContractNumber);
 
-    // ---- Validate End Date >= Start Date ----
     function validateDates() {
         if (startDate.value && endDate.value && new Date(endDate.value) < new Date(startDate.value)) {
             endDate.setCustomValidity('End date must be on or after start date.');
@@ -279,19 +365,14 @@ document.addEventListener('DOMContentLoaded', function () {
             endDate.setCustomValidity('');
         }
     }
-    startDate.addEventListener('change', validateDates);
-    endDate.addEventListener('change', validateDates);
 
-    // ---- Auto-set signature dates to start date if empty ----
     function syncSignatureDates() {
         if (startDate.value) {
             if (!employerSigDate.value) employerSigDate.value = startDate.value;
             if (!employeeSigDate.value) employeeSigDate.value = startDate.value;
         }
     }
-    startDate.addEventListener('change', syncSignatureDates);
 
-    // ---- Calendar Icon Click ----
     document.querySelectorAll('.calendar-icon').forEach(icon => {
         icon.addEventListener('click', () => {
             const input = icon.parentElement.querySelector('input[type="date"]');
@@ -299,7 +380,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // ---- Salary to Words ----
     function numberToWords(num) {
         if (num === 0) return 'Zero';
         const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
@@ -331,12 +411,12 @@ document.addEventListener('DOMContentLoaded', function () {
             num = Math.floor(num / 1000);
             scale++;
         }
-        return parts.join(' ').replace(/\s+/g, ' ').trim();
+        return parts.join(' ').trim();
     }
 
     function convertSalaryToWords() {
-        const value = parseFloat(salaryAmount.value);
-        if (isNaN(value) || value < 0) {
+        const value = parseFloat(salaryAmount.value) || 0;
+        if (value <= 0) {
             salaryWords.value = '';
             salaryFormatted.textContent = '';
             return;
@@ -349,14 +429,14 @@ document.addEventListener('DOMContentLoaded', function () {
         salaryWords.value = words;
         salaryFormatted.textContent = 'Formatted: $' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
+
+    // Event Listeners
+    contractType.addEventListener('change', updateContractNumber);
+    startDate.addEventListener('change', validateDates);
+    endDate.addEventListener('change', validateDates);
+    startDate.addEventListener('change', syncSignatureDates);
     salaryAmount.addEventListener('input', convertSalaryToWords);
 
-    // ---- Auto-fill Employee Signature Name ----
-    employeeName.addEventListener('input', () => {
-        if (!employeeSignature.value) employeeSignature.value = employeeName.value;
-    });
-
-    // ---- Form Submit Validation ----
     form.addEventListener('submit', function (e) {
         validateDates();
         if (!form.checkValidity()) {
@@ -364,10 +444,10 @@ document.addEventListener('DOMContentLoaded', function () {
             e.stopPropagation();
         }
         form.classList.add('was-validated');
-        salaryWords.removeAttribute('readonly'); // Allow submission
+        salaryWords.removeAttribute('readonly');
     });
 
-    // ---- Initialize ----
+    // Initialize
     updateContractNumber();
     convertSalaryToWords();
     syncSignatureDates();
