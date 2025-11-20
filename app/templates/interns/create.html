@@ -19,14 +19,14 @@
             <div class="section-header">Intern Details</div>
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label for="intern_name" class="form-label">Full Name (Include Title)</label>
+                    <label for="intern_name" class="form-label">Full Name (Title Including)</label>
                     <input type="text" class="form-control" id="intern_name" name="intern_name"
                            value="{{ form_data.intern_name | default('') }}"
                            placeholder="e.g., Ms. Dorn Sochea" required pattern="[a-zA-Z\s\.]+">
                     <div class="invalid-feedback">Please enter a valid full name (including title).</div>
                 </div>
                 <div class="col-md-6">
-                    <label for="intern_role" class="form-label">Role</label>
+                    <label for="intern_role" class="form-label">Position</label>
                     <input type="text" class="form-control" id="intern_role" name="intern_role"
                            value="{{ form_data.intern_role | default('') }}" placeholder="e.g., Finance and Administrative Intern" required>
                     <div class="invalid-feedback">Please enter the intern role.</div>
@@ -38,7 +38,7 @@
                     <div class="invalid-feedback">Please enter the intern's address.</div>
                 </div>
                 <div class="col-md-6">
-                    <label for="intern_phone" class="form-label">Phone</label>
+                    <label for="intern_phone" class="form-label">Phone Number</label>
                     <input type="tel" class="form-control" id="intern_phone" name="intern_phone"
                            value="{{ form_data.intern_phone | default('') }}" placeholder="e.g., +85511 943 647"
                            pattern="\+?\d{1,4}([-.\s]?\d{1,4}){2,3}">
@@ -56,7 +56,7 @@
             <div class="section-header">Internship Details</div>
             <div class="row g-3">
                 <div class="col-md-4">
-                    <label for="start_date" class="form-label">Start Date</label>
+                    <label for="start_date" class="form-label">Starting Date</label>
                     <div class="input-group">
                         <input type="date" class="form-control" id="start_date" name="start_date"
                                value="{{ form_data.start_date | default('') }}" required aria-describedby="start_date_icon">
@@ -142,7 +142,7 @@
                     <div class="invalid-feedback">Please enter the employer's address.</div>
                 </div>
                 <div class="col-md-6">
-                    <label for="employer_phone" class="form-label">Phone</label>
+                    <label for="employer_phone" class="form-label">Phone Number</label>
                     <input type="tel" class="form-control" id="employer_phone" name="employer_phone"
                            value="{{ form_data.employer_phone | default('023 214 429') }}" pattern="\+?\d{1,4}([-.\s]?\d{1,4}){2,3}" required>
                     <div class="invalid-feedback">Please enter a valid phone number.</div>

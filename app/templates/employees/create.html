@@ -23,13 +23,13 @@
             </div>
             <div class="row g-3 mb-4">
                 <div class="col-md-6">
-                    <label for="employee_name" class="form-label fw-bold">Full Name <span class="text-danger">*</span></label>
+                    <label for="employee_name" class="form-label fw-bold">Full Name (Title Including) <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="employee_name" name="employee_name"
                            value="{{ form_data.employee_name | default('') }}" placeholder="e.g., Mr. Chan Vicheth" required>
                     <div class="invalid-feedback">Please enter full name (including title).</div>
                 </div>
                 <div class="col-md-6">
-                    <label for="position_title" class="form-label fw-bold">Position Title <span class="text-danger">*</span></label>
+                    <label for="position_title" class="form-label fw-bold">Position <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="position_title" name="position_title"
                            value="{{ form_data.position_title | default('') }}" placeholder="e.g., Capacity Development Specialist" required>
                     <div class="invalid-feedback">Please enter position title.</div>
@@ -40,7 +40,7 @@
                               placeholder="Complete address">{{ form_data.employee_address | default('') }}</textarea>
                 </div>
                 <div class="col-md-6">
-                    <label for="employee_tel" class="form-label">Phone</label>
+                    <label for="employee_tel" class="form-label">Phone Number</label>
                     <input type="tel" class="form-control" id="employee_tel" name="employee_tel"
                            value="{{ form_data.employee_tel | default('') }}" placeholder="e.g., 012 953 650">
                 </div>
@@ -79,7 +79,7 @@
                 </div>
 
                 <div class="col-md-6">
-                    <label for="start_date" class="form-label fw-bold">Start Date <span class="text-danger">*</span></label>
+                    <label for="start_date" class="form-label fw-bold">Starting Date <span class="text-danger">*</span></label>
                     <div class="input-group">
                         <input type="date" class="form-control" id="start_date" name="start_date"
                                value="{{ form_data.start_date | default('') }}" required>
@@ -88,7 +88,7 @@
                     </div>
                 </div>
                 <div class="col-md-6">
-                    <label for="end_date" class="form-label fw-bold">End Date <span class="text-danger">*</span></label>
+                    <label for="end_date" class="form-label fw-bold">Ending Date <span class="text-danger">*</span></label>
                     <div class="input-group">
                         <input type="date" class="form-control" id="end_date" name="end_date"
                                value="{{ form_data.end_date | default('') }}" required>
@@ -100,24 +100,24 @@
 
             <!-- Salary & Benefits -->
             <div class="section-header mb-4">
-                <h5><i class="bi bi-currency-dollar"></i> Salary & Benefits</h5>
+                <h5><i class="bi bi-currency-dollar"></i> Salary & Other Benefits</h5>
                 <hr>
             </div>
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
-                    <label for="salary_amount" class="form-label fw-bold">Salary Amount (USD) <span class="text-danger">*</span></label>
+                    <label for="salary_amount" class="form-label fw-bold">Salary in Amount (USD) <span class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="salary_amount" name="salary_amount"
                            value="{{ form_data.salary_amount | default('0.00') }}" min="0" step="0.01" required>
                     <small id="salary_formatted" class="text-muted"></small>
                     <div class="invalid-feedback">Please enter a valid salary amount.</div>
                 </div>
                 <div class="col-md-4">
-                    <label for="salary_grade" class="form-label">Salary Grade</label>
+                    <label for="salary_grade" class="form-label">Salary Scale</label>
                     <input type="text" class="form-control" id="salary_grade" name="salary_grade"
                            value="{{ form_data.salary_grade | default('G4/L5') }}" placeholder="e.g., G4/L5">
                 </div>
                 <div class="col-md-4">
-                    <label for="salary_amount_words" class="form-label">Salary Amount (Words)</label>
+                    <label for="salary_amount_words" class="form-label">Salary in Amount (Words)</label>
                     <input type="text" class="form-control" id="salary_amount_words" name="salary_amount_words"
                            value="{{ form_data.salary_amount_words | default('') }}" readonly>
                 </div>
@@ -185,7 +185,7 @@
                     </textarea>
                 </div>
                 <div class="col-md-4">
-                    <label for="organization_tel" class="form-label">Phone</label>
+                    <label for="organization_tel" class="form-label">Phone Number</label>
                     <input type="tel" class="form-control" id="organization_tel" name="organization_tel"
                            value="{{ form_data.organization_tel | default('023 214 429') }}">
                 </div>
