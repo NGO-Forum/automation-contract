@@ -27,13 +27,20 @@
                 <hr>
             </div>
             <div class="row g-3 mb-4">
-                <div class="col-md-6">
-                    <label for="employee_name" class="form-label fw-bold">Full Name (Title Including)<span class="text-danger">*</span></label>
+                <div class="col-md-6 position-relative">
+                    <label for="employee_name" class="form-label fw-bold">Full Name (Title Including) <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="employee_name" name="employee_name"
                            value="{{ form_data.employee_name | default(employee.employee_name) }}"
-                           placeholder="e.g., Mr. Chan Vicheth" required>
+                           placeholder="Type to search existing employee..." autocomplete="off" required>
                     <div class="invalid-feedback">Please enter full name (including title).</div>
+
+                    <!-- Suggestions Dropdown -->
+                    <div id="employee-suggestions"
+                         class="dropdown-menu w-100 shadow"
+                         style="max-height: 300px; overflow-y: auto; display: none; z-index: 1050;">
+                    </div>
                 </div>
+
                 <div class="col-md-6">
                     <label for="position_title" class="form-label fw-bold">Position <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="position_title" name="position_title"
@@ -41,6 +48,7 @@
                            placeholder="e.g., Capacity Development Specialist" required>
                     <div class="invalid-feedback">Please enter position title.</div>
                 </div>
+
                 <div class="col-12">
                     <label for="employee_address" class="form-label">Address</label>
                     <textarea class="form-control" id="employee_address" name="employee_address" rows="2"
@@ -283,20 +291,87 @@ document.addEventListener('DOMContentLoaded', function () {
     const salaryAmount = document.getElementById('salary_amount');
     const salaryWords = document.getElementById('salary_amount_words');
     const salaryFormatted = document.getElementById('salary_formatted');
-    const employeeName = document.getElementById('employee_name');
+    const employeeNameInput = document.getElementById('employee_name');
     const employeeSignature = document.getElementById('employee_signature_name');
+    const suggestionsBox = document.getElementById('employee-suggestions');
 
-    // 1. Update Contract Number
+    // AUTOCOMPLETE SEARCH
+    let debounceTimer;
+    employeeNameInput.addEventListener('input', function () {
+        const query = this.value.trim();
+        clearTimeout(debounceTimer);
+
+        if (query.length < 2) {
+            suggestionsBox.style.display = 'none';
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            fetch(`/employees/api/employees/search?q=${encodeURIComponent(query)}`)
+                .then(r => r.json())
+                .then(data => {
+                    suggestionsBox.innerHTML = '';
+                    if (data.length === 0) {
+                        suggestionsBox.style.display = 'none';
+                        return;
+                    }
+                    data.forEach(emp => {
+                        const item = document.createElement('a');
+                        item.className = 'dropdown-item py-2 border-bottom';
+                        item.href = '#';
+                        item.innerHTML = `
+                            <strong>${escapeHtml(emp.name)}</strong><br>
+                            <small class="text-muted">
+                                ${escapeHtml(emp.position)} | ${escapeHtml(emp.phone || 'No phone')} | ${escapeHtml(emp.email || 'No email')}
+                            </small>
+                        `;
+                        item.onclick = (e) => {
+                            e.preventDefault();
+                            fillEmployeeData(emp);
+                            suggestionsBox.style.display = 'none';
+                        };
+                        suggestionsBox.appendChild(item);
+                    });
+                    suggestionsBox.style.display = 'block';
+                })
+                .catch(() => suggestionsBox.style.display = 'none');
+        }, 300);
+    });
+
+    function fillEmployeeData(emp) {
+        employeeNameInput.value = emp.name;
+        document.getElementById('position_title').value = emp.position || '';
+        document.getElementById('employee_address').value = emp.address || '';
+        document.getElementById('employee_tel').value = emp.phone || '';
+        document.getElementById('employee_email').value = emp.email || '';
+        if (!employeeSignature.value.trim()) {
+            employeeSignature.value = emp.name;
+        }
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
+    }
+
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!employeeNameInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+            suggestionsBox.style.display = 'none';
+        }
+    });
+
+    // Existing features (contract number, salary words, dates, etc.)
     function updateContractNumber() {
         if (!contractType.value) return;
         const prefix = 'NGOF';
         const typeCode = contractType.value.includes('FDC') ? 'FDC' : 'UDC';
-        const currentNum = contractNo.value.match(/\d+$/)?.[0] || '001';
+        const currentNum = contractNo.value.match(/\d+$/)?.[0]?.padStart(3, '0') || '001';
         contractNo.value = `${prefix}-${typeCode}/${currentNum}`;
     }
     contractType.addEventListener('change', updateContractNumber);
 
-    // 2. Validate End Date >= Start Date
     function validateDates() {
         if (startDate.value && endDate.value && new Date(endDate.value) < new Date(startDate.value)) {
             endDate.setCustomValidity('End date must be on or after start date.');
@@ -307,7 +382,6 @@ document.addEventListener('DOMContentLoaded', function () {
     startDate.addEventListener('change', validateDates);
     endDate.addEventListener('change', validateDates);
 
-    // 3. Sync Signature Dates to Start Date if empty
     function syncSignatureDates() {
         if (startDate.value) {
             if (!employerSigDate.value) employerSigDate.value = startDate.value;
@@ -316,7 +390,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     startDate.addEventListener('change', syncSignatureDates);
 
-    // 4. Calendar Icon Click
     document.querySelectorAll('.calendar-icon').forEach(icon => {
         icon.addEventListener('click', () => {
             const input = icon.parentElement.querySelector('input[type="date"]');
@@ -324,7 +397,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // 5. Salary to Words
     function numberToWords(num) {
         if (num === 0) return 'Zero';
         const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
@@ -356,12 +428,12 @@ document.addEventListener('DOMContentLoaded', function () {
             num = Math.floor(num / 1000);
             scale++;
         }
-        return parts.join(' ').replace(/\s+/g, ' ').trim();
+        return parts.join(' ').trim();
     }
 
     function convertSalaryToWords() {
-        const value = parseFloat(salaryAmount.value);
-        if (isNaN(value) || value < 0) {
+        const value = parseFloat(salaryAmount.value) || 0;
+        if (value <= 0) {
             salaryWords.value = '';
             salaryFormatted.textContent = '';
             return;
@@ -376,14 +448,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     salaryAmount.addEventListener('input', convertSalaryToWords);
 
-    // 6. Auto-fill Employee Signature Name
-    employeeName.addEventListener('input', () => {
-        if (!employeeSignature.value.trim()) {
-            employeeSignature.value = employeeName.value;
-        }
-    });
-
-    // 7. Form Submit Validation
     form.addEventListener('submit', function (e) {
         validateDates();
         if (!form.checkValidity()) {
@@ -394,7 +458,7 @@ document.addEventListener('DOMContentLoaded', function () {
         salaryWords.removeAttribute('readonly');
     });
 
-    // 8. Initialize
+    // Initialize
     updateContractNumber();
     convertSalaryToWords();
     validateDates();
