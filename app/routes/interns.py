@@ -34,6 +34,14 @@ def build_context(intern):
     except Exception as e:
         flash(f'Error building context for DOCX: {str(e)}', 'danger')
         return {}
+def adjust_to_next_monday(date):
+    """Move date to next Monday if it's Saturday or Sunday"""
+    if date.weekday() == 5:  # Saturday
+        return date + timedelta(days=2)
+    elif date.weekday() == 6:  # Sunday
+        return date + timedelta(days=1)
+    return date
+
 # -------------------------------
 # 📄 List Interns
 # -------------------------------
@@ -206,65 +214,67 @@ def import_excel():
         flash(f'Error importing Excel file: {str(e)}', 'danger')
     return redirect(url_for('interns.index'))
 # -------------------------------
-# ➕ Create Intern
+# ➕ Create Intern (FIXED: End date adjusts to Monday)
 # -------------------------------
 @interns_bp.route('/create', methods=['GET', 'POST'])
 @login_required
 def create():
-    """Create a new intern record."""
-    form_data = {'supervisor_info': {'title': '', 'name': ''}}
+    """Create a new intern record with smart end date."""
+    form_data = {'supervisor_info': {'title': '', 'name': ''}, 'has_nssf': True}
+
     if request.method == 'POST':
         try:
-            start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d')
-            duration_months = int(request.form['duration'].split()[0])
-            end_date = start_date + relativedelta(months=duration_months)
-            allowance = float(request.form['allowance_amount']) if request.form['allowance_amount'] else 0.0
+            start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d').date()
+            duration_str = request.form['duration']  # e.g., "3 months"
+            duration_months = int(duration_str.split()[0])
+
+            # Calculate raw end date
+            raw_end_date = start_date + relativedelta(months=duration_months)
+
+            # ADJUST TO NEXT MONDAY if weekend
+            end_date = adjust_to_next_monday(raw_end_date)
+
+            allowance = float(request.form['allowance_amount'] or 0)
             has_nssf = request.form.get('has_nssf') == 'on'
+
             new_intern = Intern(
                 intern_name=request.form['intern_name'].strip(),
                 intern_role=request.form['intern_role'].strip(),
-                intern_address=request.form['intern_address'].strip(),
-                intern_phone=request.form['intern_phone'].strip(),
-                intern_email=request.form['intern_email'].strip(),
+                intern_address=request.form['intern_address'].strip() or None,
+                intern_phone=request.form['intern_phone'].strip() or None,
+                intern_email=request.form['intern_email'].strip() or None,
                 start_date=start_date,
-                duration=request.form['duration'].strip(),
-                end_date=end_date,
+                duration=duration_str,
+                end_date=end_date,  # Now correctly adjusted!
                 working_hours=request.form['working_hours'].strip(),
                 allowance_amount=allowance,
                 has_nssf=has_nssf,
                 supervisor_info={
-                    'title': request.form['supervisor_title'].strip(),
-                    'name': request.form['supervisor_name'].strip()
+                    'title': request.form['supervisor_title'],
+                    'name': request.form['supervisor_name']
                 },
                 employer_representative_name=request.form['employer_representative_name'].strip(),
                 employer_representative_title=request.form['employer_representative_title'].strip(),
                 employer_address=request.form['employer_address'].strip(),
                 employer_phone=request.form['employer_phone'].strip(),
-                employer_fax=request.form['employer_fax'].strip(),
+                employer_fax=request.form.get('employer_fax', '').strip() or None,
                 employer_email=request.form['employer_email'].strip()
             )
             db.session.add(new_intern)
             db.session.commit()
-            flash('Intern record created successfully!', 'success')
+            flash(f'Intern contract created! End date: {end_date.strftime("%d %B %Y")} (adjusted to Monday)', 'success')
             return redirect(url_for('interns.index'))
-        except ValueError as e:
-            db.session.rollback()
-            flash(f'Invalid input: {str(e)}', 'danger')
-            form_data = request.form.to_dict()
-            form_data['supervisor_info'] = {
-                'title': request.form.get('supervisor_title', ''),
-                'name': request.form.get('supervisor_name', '')
-            }
-            form_data['has_nssf'] = request.form.get('has_nssf') == 'on'
+
         except Exception as e:
             db.session.rollback()
-            flash(f'Error creating intern record: {str(e)}', 'danger')
+            flash(f'Error creating intern: {str(e)}', 'danger')
             form_data = request.form.to_dict()
             form_data['supervisor_info'] = {
                 'title': request.form.get('supervisor_title', ''),
                 'name': request.form.get('supervisor_name', '')
             }
             form_data['has_nssf'] = request.form.get('has_nssf') == 'on'
+
     return render_template('interns/create.html', form_data=form_data)
 # -------------------------------
 # 👁 View Intern Details
@@ -280,64 +290,62 @@ def view(id):
         flash(f'Error viewing intern details: {str(e)}', 'danger')
         return redirect(url_for('interns.index'))
 # -------------------------------
-# ✏️ Update Intern
+# ✏️ Update Intern (FIXED: End date adjusts to Monday)
 # -------------------------------
 @interns_bp.route('/update/<string:id>', methods=['GET', 'POST'])
 @login_required
 def update(id):
     """Update an existing intern record."""
-    try:
-        intern = Intern.query.filter_by(id=id, deleted_at=None).first_or_404()
-        form_data = intern.to_dict()
-        if request.method == 'POST':
-            try:
-                intern.intern_name = request.form['intern_name'].strip()
-                intern.intern_role = request.form['intern_role'].strip()
-                intern.intern_address = request.form['intern_address'].strip()
-                intern.intern_phone = request.form['intern_phone'].strip()
-                intern.intern_email = request.form['intern_email'].strip()
-                intern.start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d')
-                duration_months = int(request.form['duration'].split()[0])
-                intern.duration = request.form['duration'].strip()
-                intern.end_date = intern.start_date + relativedelta(months=duration_months)
-                intern.working_hours = request.form['working_hours'].strip()
-                intern.allowance_amount = float(request.form['allowance_amount']) if request.form['allowance_amount'] else 0.0
-                intern.has_nssf = request.form.get('has_nssf') == 'on'
-                intern.supervisor_info = {
-                    'title': request.form['supervisor_title'].strip(),
-                    'name': request.form['supervisor_name'].strip()
-                }
-                intern.employer_representative_name = request.form['employer_representative_name'].strip()
-                intern.employer_representative_title = request.form['employer_representative_title'].strip()
-                intern.employer_address = request.form['employer_address'].strip()
-                intern.employer_phone = request.form['employer_phone'].strip()
-                intern.employer_fax = request.form['employer_fax'].strip()
-                intern.employer_email = request.form['employer_email'].strip()
-                db.session.commit()
-                flash('Intern record updated successfully!', 'success')
-                return redirect(url_for('interns.index'))
-            except ValueError as e:
-                db.session.rollback()
-                flash(f'Invalid input: {str(e)}', 'danger')
-                form_data = request.form.to_dict()
-                form_data['supervisor_info'] = {
-                    'title': request.form.get('supervisor_title', ''),
-                    'name': request.form.get('supervisor_name', '')
-                }
-                form_data['has_nssf'] = request.form.get('has_nssf') == 'on'
-            except Exception as e:
-                db.session.rollback()
-                flash(f'Error updating intern record: {str(e)}', 'danger')
-                form_data = request.form.to_dict()
-                form_data['supervisor_info'] = {
-                    'title': request.form.get('supervisor_title', ''),
-                    'name': request.form.get('supervisor_name', '')
-                }
-                form_data['has_nssf'] = request.form.get('has_nssf') == 'on'
-        return render_template('interns/update.html', intern=intern, form_data=form_data)
-    except Exception as e:
-        flash(f'Error accessing intern record: {str(e)}', 'danger')
-        return redirect(url_for('interns.index'))
+    intern = Intern.query.filter_by(id=id, deleted_at=None).first_or_404()
+    form_data = intern.to_dict()
+
+    if request.method == 'POST':
+        try:
+            intern.intern_name = request.form['intern_name'].strip()
+            intern.intern_role = request.form['intern_role'].strip()
+            intern.intern_address = request.form['intern_address'].strip() or None
+            intern.intern_phone = request.form['intern_phone'].strip() or None
+            intern.intern_email = request.form['intern_email'].strip() or None
+
+            # Recalculate start date
+            intern.start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d').date()
+            duration_str = request.form['duration']
+            duration_months = int(duration_str.split()[0])
+            intern.duration = duration_str
+
+            # Raw end date
+            raw_end = intern.start_date + relativedelta(months=duration_months)
+            # FINAL: Adjust to Monday if weekend
+            intern.end_date = adjust_to_next_monday(raw_end)
+
+            intern.working_hours = request.form['working_hours'].strip()
+            intern.allowance_amount = float(request.form['allowance_amount'] or 0)
+            intern.has_nssf = request.form.get('has_nssf') == 'on'
+            intern.supervisor_info = {
+                'title': request.form['supervisor_title'],
+                'name': request.form['supervisor_name']
+            }
+            intern.employer_representative_name = request.form['employer_representative_name'].strip()
+            intern.employer_representative_title = request.form['employer_representative_title'].strip()
+            intern.employer_address = request.form['employer_address'].strip()
+            intern.employer_phone = request.form['employer_phone'].strip()
+            intern.employer_fax = request.form.get('employer_fax', '').strip() or None
+            intern.employer_email = request.form['employer_email'].strip()
+
+            db.session.commit()
+            flash(f'Updated! End date: {intern.end_date.strftime("%d %B %Y")} (auto-adjusted)', 'success')
+            return redirect(url_for('interns.index'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating: {str(e)}', 'danger')
+            form_data = request.form.to_dict()
+            form_data['supervisor_info'] = {
+                'title': request.form.get('supervisor_title', ''),
+                'name': request.form.get('supervisor_name', '')
+            }
+
+    return render_template('interns/update.html', intern=intern, form_data=form_data)
 # -------------------------------
 # 🗑 Delete Intern (Soft)
 # -------------------------------

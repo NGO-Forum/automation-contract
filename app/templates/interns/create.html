@@ -10,114 +10,116 @@
     </div>
     <div class="form-card">
         <nav class="mb-3">
-            <a href="{{ url_for('interns.index') }}" class="btn btn-outline-primary">Back to Intern Contract List</a>
+            <a href="{{ url_for('interns.index') }}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
         </nav>
 
         <form id="internForm" action="{{ url_for('interns.create') }}" method="POST" class="needs-validation" novalidate>
-
             <!-- Intern Details -->
             <div class="section-header">Intern Details</div>
-            <div class="row g-3">
+            <div class="row g-3 mb-4">
                 <div class="col-md-6">
-                    <label for="intern_name" class="form-label">Full Name (Title Including)</label>
+                    <label for="intern_name" class="form-label">Full Name (Title Including) <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="intern_name" name="intern_name"
                            value="{{ form_data.intern_name | default('') }}"
-                           placeholder="e.g., Ms. Dorn Sochea" required pattern="[a-zA-Z\s\.]+">
-                    <div class="invalid-feedback">Please enter a valid full name (including title).</div>
+                           placeholder="e.g., Ms. Dorn Sochea" required pattern="[A-Za-z\s\.]+">
+                    <div class="invalid-feedback">Please enter a valid name with title (e.g., Mr., Ms.).</div>
                 </div>
                 <div class="col-md-6">
-                    <label for="intern_role" class="form-label">Position</label>
+                    <label for="intern_role" class="form-label">Position <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="intern_role" name="intern_role"
                            value="{{ form_data.intern_role | default('') }}" placeholder="e.g., Finance and Administrative Intern" required>
-                    <div class="invalid-feedback">Please enter the intern role.</div>
+                    <div class="invalid-feedback">Please enter the intern's role.</div>
                 </div>
                 <div class="col-12">
                     <label for="intern_address" class="form-label">Address</label>
                     <textarea class="form-control" id="intern_address" name="intern_address" rows="3"
-                              placeholder="e.g., No. 174A St 23, Thmey Village, Sangkat Stung Mean Chey, Khan Mean Chey, Phnom Penh">{{ form_data.intern_address | default('') }}</textarea>
-                    <div class="invalid-feedback">Please enter the intern's address.</div>
+                              placeholder="House No., Street, Village, Sangkat, Khan, City">{{ form_data.intern_address | default('') }}</textarea>
                 </div>
                 <div class="col-md-6">
                     <label for="intern_phone" class="form-label">Phone Number</label>
                     <input type="tel" class="form-control" id="intern_phone" name="intern_phone"
-                           value="{{ form_data.intern_phone | default('') }}" placeholder="e.g., +85511 943 647"
-                           pattern="\+?\d{1,4}([-.\s]?\d{1,4}){2,3}">
-                    <div class="invalid-feedback">Please enter a valid phone number.</div>
+                           value="{{ form_data.intern_phone | default('') }}" placeholder="+855 12 345 678">
                 </div>
                 <div class="col-md-6">
                     <label for="intern_email" class="form-label">Email</label>
                     <input type="email" class="form-control" id="intern_email" name="intern_email"
-                           value="{{ form_data.intern_email | default('') }}" placeholder="e.g., sochea.dorn@example.com">
-                    <div class="invalid-feedback">Please enter a valid email address.</div>
+                           value="{{ form_data.intern_email | default('') }}" placeholder="name@example.com">
                 </div>
             </div>
 
             <!-- Internship Details -->
             <div class="section-header">Internship Details</div>
-            <div class="row g-3">
+            <div class="row g-3 mb-4">
                 <div class="col-md-4">
-                    <label for="start_date" class="form-label">Starting Date</label>
+                    <label for="start_date" class="form-label">Starting Date <span class="text-danger">*</span></label>
                     <div class="input-group">
                         <input type="date" class="form-control" id="start_date" name="start_date"
-                               value="{{ form_data.start_date | default('') }}" required aria-describedby="start_date_icon">
-                        <span class="input-group-text" id="start_date_icon">
-                            <i class="bi bi-calendar"></i>
+                               value="{{ form_data.start_date | default('') }}" required>
+                        <span class="input-group-text calendar-icon" style="cursor: pointer;">
+                            <i class="bi bi-calendar3"></i>
                         </span>
                         <div class="invalid-feedback">Please select a start date.</div>
                     </div>
                 </div>
+
                 <div class="col-md-4">
-                    <label for="duration" class="form-label">Duration</label>
+                    <label for="duration" class="form-label">Duration <span class="text-danger">*</span></label>
                     <select class="form-select" id="duration" name="duration" required>
-                        <option value="" disabled {{ 'selected' if not form_data.duration }}>Select Duration</option>
-                        <option value="3 months" {{ 'selected' if form_data.duration == '3 months' }}>3 months</option>
-                        <option value="6 months" {{ 'selected' if form_data.duration == '6 months' }}>6 months</option>
-                        <option value="12 months" {{ 'selected' if form_data.duration == '12 months' }}>12 months</option>
+                        <option value="" disabled {{ 'selected' if not form_data.duration else '' }}>Select Duration</option>
+                        <option value="3" {{ 'selected' if form_data.duration == '3 months' }}>3 months</option>
+                        <option value="6" {{ 'selected' if form_data.duration == '6 months' }}>6 months</option>
+                        <option value="12" {{ 'selected' if form_data.duration == '12 months' }}>12 months</option>
                     </select>
-                    <div class="invalid-feedback">Please select a duration.</div>
+                    <div class="invalid-feedback">Please select duration.</div>
                 </div>
+
                 <div class="col-md-4">
+                    <label for="end_date_display" class="form-label">End Date</label>
+                    <input type="text" class="form-control bg-light" id="end_date_display" readonly
+                           value="" placeholder="Auto-calculated">
+                    <small class="text-success">
+                        <i class="bi bi-info-circle"></i> Automatically adjusts to next Monday if weekend
+                    </small>
+                </div>
+
+                <div class="col-md-6">
                     <label for="working_hours" class="form-label">Working Hours</label>
                     <input type="text" class="form-control" id="working_hours" name="working_hours"
                            value="{{ form_data.working_hours | default('8:00am – 5:00pm, Monday to Friday') }}" required>
-                    <div class="invalid-feedback">Please enter working hours.</div>
                 </div>
-                <div class="col-md-4">
+
+                <div class="col-md-3">
                     <label for="allowance_amount" class="form-label">Allowance (USD)</label>
                     <input type="number" class="form-control" id="allowance_amount" name="allowance_amount"
                            value="{{ form_data.allowance_amount | default('0.00') }}" min="0" step="0.01">
-                    <div class="invalid-feedback">Please enter a valid allowance amount.</div>
                 </div>
-                <div class="col-md-4">
-                    <label for="has_nssf" class="form-label">NSSF Benefit</label>
-                    <div class="form-check">
+
+                <div class="col-md-3">
+                    <label class="form-label">NSSF Benefit</label>
+                    <div class="form-check mt-2">
                         <input class="form-check-input" type="checkbox" id="has_nssf" name="has_nssf"
-                               {% if form_data.has_nssf is defined %}
-                                   {{ 'checked' if form_data.has_nssf }}
-                               {% else %}
-                                   checked
-                               {% endif %}>
-                        <label class="form-check-label" for="has_nssf">Include NSSF Benefit</label>
+                               {% if form_data.has_nssf is not defined or form_data.has_nssf %}checked{% endif %}>
+                        <label class="form-check-label" for="has_nssf">Include NSSF</label>
                     </div>
                 </div>
 
-                <!-- Supervisor Section -->
+                <!-- Supervisor -->
                 <div class="col-md-6">
-                    <label for="supervisor_title" class="form-label">Supervisor Title</label>
+                    <label for="supervisor_title" class="form-label">Supervisor Title <span class="text-danger">*</span></label>
                     <select class="form-select" id="supervisor_title" name="supervisor_title" required>
-                        <option value="" disabled {{ 'selected' if not form_data.supervisor_info.title }}>Select Supervisor Title</option>
+                        <option value="" disabled {{ 'selected' if not form_data.supervisor_info.title else '' }}>Select Title</option>
                         <option value="RITI Program Manager" {{ 'selected' if form_data.supervisor_info.title == 'RITI Program Manager' }}>RITI Program Manager</option>
                         <option value="PALI Program Manager" {{ 'selected' if form_data.supervisor_info.title == 'PALI Program Manager' }}>PALI Program Manager</option>
                         <option value="SACHAS Program Manager" {{ 'selected' if form_data.supervisor_info.title == 'SACHAS Program Manager' }}>SACHAS Program Manager</option>
                         <option value="MACOR Program Manager" {{ 'selected' if form_data.supervisor_info.title == 'MACOR Program Manager' }}>MACOR Program Manager</option>
                     </select>
-                    <div class="invalid-feedback">Please select the supervisor title.</div>
                 </div>
                 <div class="col-md-6">
                     <label for="supervisor_name" class="form-label">Supervisor Name</label>
                     <input type="text" class="form-control" id="supervisor_name" name="supervisor_name"
-                           value="{{ form_data.supervisor_info.name | default('') }}" placeholder="e.g., Mr. SOM Chettana" required pattern="[a-zA-Z\s\.]+">
-                    <div class="invalid-feedback">Please enter a valid supervisor name.</div>
+                           value="{{ form_data.supervisor_info.name | default('') }}" required readonly>
                 </div>
             </div>
 
@@ -127,42 +129,38 @@
                 <div class="col-md-6">
                     <label for="employer_representative_name" class="form-label">Representative Name</label>
                     <input type="text" class="form-control" id="employer_representative_name" name="employer_representative_name"
-                           value="{{ form_data.employer_representative_name | default('Mr. Soeung Saroeun') }}" required pattern="[a-zA-Z\s\.]+">
-                    <div class="invalid-feedback">Please enter a valid representative name.</div>
+                           value="{{ form_data.employer_representative_name | default('Mr. Soeung Saroeun') }}" required>
                 </div>
                 <div class="col-md-6">
-                    <label for="employer_representative_title" class="form-label">Representative Title</label>
+                    <label for="employer_representative_title" class="form-label">Title</label>
                     <input type="text" class="form-control" id="employer_representative_title" name="employer_representative_title"
                            value="{{ form_data.employer_representative_title | default('Executive Director') }}" required>
-                    <div class="invalid-feedback">Please enter the representative title.</div>
                 </div>
                 <div class="col-12">
                     <label for="employer_address" class="form-label">Address</label>
                     <textarea class="form-control" id="employer_address" name="employer_address" rows="3" required>{{ form_data.employer_address | default('#9-11, St. 476, Sangkat ToulTompong I, Khan Chamka Morn, Phnom Penh, Cambodia') }}</textarea>
-                    <div class="invalid-feedback">Please enter the employer's address.</div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label for="employer_phone" class="form-label">Phone Number</label>
-                    <input type="tel" class="form-control" id="employer_phone" name="employer_phone"
-                           value="{{ form_data.employer_phone | default('023 214 429') }}" pattern="\+?\d{1,4}([-.\s]?\d{1,4}){2,3}" required>
-                    <div class="invalid-feedback">Please enter a valid phone number.</div>
+                    <input type="text" class="form-control" id="employer_phone" name="employer_phone"
+                           value="{{ form_data.employer_phone | default('023 214 429') }}" required>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label for="employer_fax" class="form-label">Fax</label>
                     <input type="text" class="form-control" id="employer_fax" name="employer_fax"
                            value="{{ form_data.employer_fax | default('023 994 063') }}">
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label for="employer_email" class="form-label">Email</label>
                     <input type="email" class="form-control" id="employer_email" name="employer_email"
                            value="{{ form_data.employer_email | default('info@ngoforum.org.kh') }}">
-                    <div class="invalid-feedback">Please enter a valid email address.</div>
                 </div>
             </div>
 
-            <!-- Submit Button -->
-            <div class="text-center mt-4">
-                <button type="submit" class="btn btn-primary">Create Intern Contract</button>
+            <div class="text-center mt-5">
+                <button type="submit" class="btn btn-primary btn-lg px-5">
+                    <i class="bi bi-file-earmark-plus"></i> Create Contract
+                </button>
             </div>
         </form>
     </div>
@@ -170,31 +168,13 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const form = document.getElementById('internForm');
-    form.addEventListener('submit', function (event) {
-        if (!form.checkValidity()) {
-            event.preventDefault();
-            event.stopPropagation();
-        }
-        form.classList.add('was-validated');
-    }, false);
+    const startDateInput = document.getElementById('start_date');
+    const durationSelect = document.getElementById('duration');
+    const endDateDisplay = document.getElementById('end_date_display');
+    const calendarIcon = document.querySelector('.calendar-icon');
+    const supervisorTitle = document.getElementById('supervisor_title');
+    const supervisorName = document.getElementById('supervisor_name');
 
-    // Calendar picker
-    const dateInputs = document.querySelectorAll('input[type="date"]');
-    dateInputs.forEach(input => {
-        input.addEventListener('click', function () {
-            this.showPicker();
-        });
-        const calendarIcon = input.parentElement.querySelector('.input-group-text');
-        if (calendarIcon) {
-            calendarIcon.addEventListener('click', function () {
-                input.focus();
-                input.showPicker();
-            });
-        }
-    });
-
-    // Supervisor auto-fill feature
     const supervisorMapping = {
         "RITI Program Manager": "Mr. CHAN Vicheth",
         "PALI Program Manager": "Mr. MAR Sophal",
@@ -202,17 +182,56 @@ document.addEventListener('DOMContentLoaded', function () {
         "MACOR Program Manager": "Mr. SOM Chettana"
     };
 
-    const supervisorTitle = document.getElementById('supervisor_title');
-    const supervisorName = document.getElementById('supervisor_name');
-
-    supervisorTitle.addEventListener('change', function () {
-        const selected = this.value;
-        if (supervisorMapping[selected]) {
-            supervisorName.value = supervisorMapping[selected];
-        } else {
-            supervisorName.value = "";
-        }
+    // Open date picker when clicking calendar icon
+    calendarIcon.addEventListener('click', function () {
+        startDateInput.focus();
+        startDateInput.showPicker(); // This triggers the native picker
     });
+
+    // Also allow clicking input to open
+    startDateInput.addEventListener('click', function () {
+        this.showPicker();
+    });
+
+    function calculateEndDate() {
+        if (!startDateInput.value || !durationSelect.value) {
+            endDateDisplay.value = '';
+            return;
+        }
+
+        const start = new Date(startDateInput.value);
+        const months = parseInt(durationSelect.value);
+
+        let end = new Date(start);
+        end.setMonth(end.getMonth() + months);
+
+        // If end date is Saturday or Sunday → move to next Monday
+        const day = end.getDay();
+        if (day === 6) { // Saturday
+            end.setDate(end.getDate() + 2);
+        } else if (day === 0) { // Sunday
+            end.setDate(end.getDate() + 1);
+        }
+
+        // Format: 17 June 2025
+        const options = { day: 'numeric', month: 'long', year: 'numeric' };
+        endDateDisplay.value = end.toLocaleDateString('en-GB', options);
+    }
+
+    // Auto-fill supervisor name
+    supervisorTitle.addEventListener('change', function () {
+        supervisorName.value = supervisorMapping[this.value] || '';
+    });
+
+    // Trigger on change
+    startDateInput.addEventListener('change', calculateEndDate);
+    durationSelect.addEventListener('change', calculateEndDate);
+
+    // Run on page load (in case editing)
+    calculateEndDate();
+    if (supervisorTitle.value) {
+        supervisorName.value = supervisorMapping[supervisorTitle.value] || '';
+    }
 });
 </script>
 {% endblock %}
