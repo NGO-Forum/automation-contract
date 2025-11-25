@@ -75,12 +75,12 @@
                     <li><a class="dropdown-item" href="{{ url_for('employees.index') }}">Employee Contracts</a></li>
                     <li><a class="dropdown-item" href="{{ url_for('employees.create') }}">Create Contract</a></li>
                     <li><a class="dropdown-item" href="#">
-                    <li><a class="dropdown-item" href="{{ url_for('employees_upload.uploads_list') }}"><i class='bx bx-upload'></i>Upload Employees</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('employees_upload.uploads_list') }}">Signed Employment Contracts</a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li><h6 class="dropdown-header">Interns</h6></li>
                     <li><a class="dropdown-item" href="{{ url_for('interns.index') }}">Intern Contracts</a></li>
                     <li><a class="dropdown-item" href="{{ url_for('interns.create') }}">Create Contract</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('interns_upload.uploads_list') }}"><i class='bx bx-upload'></i>Upload Interns</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('interns_upload.uploads_list') }}">Signed Intern Contracts</a></li>
                   </ul>
                 </li>
               {% endif %}
@@ -94,9 +94,9 @@
                 <ul class="dropdown-menu dropdown-menu-end card-1">
                   <li><h6 class="dropdown-header">Consultants</h6></li>
                   <li><a class="dropdown-item" href="{{ url_for('contracts.index') }}">List of Consultants</a></li>
-                  <li><a class="dropdown-item" href="{{ url_for('contracts.create') }}">Request Consultants</a></li>
+                  <li><a class="dropdown-item" href="{{ url_for('contracts.create') }}">Add New Consultants</a></li>
                   <li><a class="dropdown-item" href="{{ url_for('docx_upload.uploads_list') }}">
-                      <i class='bx bx-upload'></i>Upload Consultants </a></li>
+                 Signed Service Contracts </a></li>
                   <li><a class="dropdown-item" href="{{ url_for('reports.contract_report') }}">Report Consultants</a></li>
                 </ul>
               </li>
