@@ -120,7 +120,7 @@
                 <div class="col-md-4">
                     <label for="salary_amount" class="form-label fw-bold">Salary in Amount (USD) <span class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="salary_amount" name="salary_amount"
-                           value="{{ form_data.salary_amount | default('0.00') }}" min="0" step="0.01" required>
+                           value="{{ form_data.salary_amount | default('') }}" min="0" step="0.01" required>
                     <small id="salary_formatted" class="text-muted"></small>
                     <div class="invalid-feedback">Please enter a valid salary amount.</div>
                 </div>
@@ -138,22 +138,22 @@
                 <div class="col-md-3">
                     <label for="medical_allowance" class="form-label">Medical Allowance</label>
                     <input type="number" class="form-control" id="medical_allowance" name="medical_allowance"
-                           value="{{ form_data.medical_allowance | default('150.00') }}" min="0" step="0.01">
+                           value="{{ form_data.medical_allowance | default('150') }}" min="0" step="0.01">
                 </div>
                 <div class="col-md-3">
                     <label for="child_education_allowance" class="form-label">Child Education</label>
                     <input type="number" class="form-control" id="child_education_allowance" name="child_education_allowance"
-                           value="{{ form_data.child_education_allowance | default('60.00') }}" min="0" step="0.01">
+                           value="{{ form_data.child_education_allowance | default('60') }}" min="0" step="0.01">
                 </div>
                 <div class="col-md-3">
                     <label for="delivery_benefit" class="form-label">Delivery Benefit</label>
                     <input type="number" class="form-control" id="delivery_benefit" name="delivery_benefit"
-                           value="{{ form_data.delivery_benefit | default('200.00') }}" min="0" step="0.01">
+                           value="{{ form_data.delivery_benefit | default('200') }}" min="0" step="0.01">
                 </div>
                 <div class="col-md-3">
                     <label for="death_benefit" class="form-label">Death Benefit</label>
                     <input type="number" class="form-control" id="death_benefit" name="death_benefit"
-                           value="{{ form_data.death_benefit | default('200.00') }}" min="0" step="0.01">
+                           value="{{ form_data.death_benefit | default('200') }}" min="0" step="0.01">
                 </div>
 
                 <div class="col-md-6">

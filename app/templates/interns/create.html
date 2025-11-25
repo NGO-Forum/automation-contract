@@ -93,7 +93,7 @@
                 <div class="col-md-3">
                     <label for="allowance_amount" class="form-label">Allowance (USD)</label>
                     <input type="number" class="form-control" id="allowance_amount" name="allowance_amount"
-                           value="{{ form_data.allowance_amount | default('0.00') }}" min="0" step="0.01">
+                           value="{{ form_data.allowance_amount | default('') }}" min="0" step="0.01">
                 </div>
 
                 <div class="col-md-3">
