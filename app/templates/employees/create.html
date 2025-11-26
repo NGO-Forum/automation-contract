@@ -71,17 +71,24 @@
             </div>
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
-                    <label for="contract_no" class="form-label fw-bold">Contract Number <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="contract_no" name="contract_no"
-                           value="{{ form_data.contract_no | default('NGOF-FDC/001') }}" required>
-                    <div class="invalid-feedback">Please enter valid contract number (e.g., NGOF-FDC/001).</div>
-                </div>
+                <label for="contract_no" class="form-label fw-bold">Contract Number <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="contract_no" name="contract_no"
+                    value="{{ form_data.contract_no | default('NGOF-UDC/001') }}" 
+                    placeholder="e.g. NGOF-UDC/001" required>
+                <small class="text-muted">Can be shared by multiple employees</small>
+            </div>
                 <div class="col-md-4">
                     <label for="contract_type" class="form-label fw-bold">Contract Type <span class="text-danger">*</span></label>
                     <select class="form-select" id="contract_type" name="contract_type" required>
-                        <option value="" disabled>Select Contract Type</option>
-                        <option value="Fixed Duration Contract (FDC)" {{ 'selected' if form_data.contract_type | default('') == 'Fixed Duration Contract (FDC)' }}>Fixed Duration Contract (FDC)</option>
-                        <option value="Undefined Duration Contract (UDC)" {{ 'selected' if form_data.contract_type | default('') == 'Undefined Duration Contract (UDC)' }}>Undefined Duration Contract (UDC)</option>
+                        <option value="" disabled {{ '' if not form_data.contract_type else 'selected' }}>Select Contract Type</option>
+                        <option value="Fixed Duration Contract (FDC)" 
+                                {{ 'selected' if form_data.contract_type == 'Fixed Duration Contract (FDC)' else '' }}>
+                            Fixed Duration Contract (FDC)
+                        </option>
+                        <option value="Undefined Duration Contract (UDC)" 
+                                {{ 'selected' if form_data.contract_type == 'Undefined Duration Contract (UDC)' else '' }}>
+                            Undefined Duration Contract (UDC)
+                        </option>
                     </select>
                     <div class="invalid-feedback">Please select a contract type.</div>
                 </div>
@@ -100,14 +107,17 @@
                         <div class="invalid-feedback">Please select a start date.</div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <label for="end_date" class="form-label fw-bold">End Date <span class="text-danger">*</span></label>
+
+                <!-- End Date Field - Will be hidden for UDC -->
+                <div class="col-md-6" id="end_date_container">
+                    <label for="end_date" class="form-label fw-bold">End Date <span class="text-danger" id="end_date_required">*</span></label>
                     <div class="input-group">
                         <input type="date" class="form-control" id="end_date" name="end_date"
-                               value="{{ form_data.end_date | default('') }}" required>
+                               value="{{ form_data.end_date | default('') }}">
                         <span class="input-group-text calendar-icon"><i class="bi bi-calendar"></i></span>
                         <div class="invalid-feedback">End date must be on or after start date.</div>
                     </div>
+                    <small class="text-muted">Leave blank for Undefined Duration Contract</small>
                 </div>
             </div>
 
@@ -164,7 +174,7 @@
                 <div class="col-md-6">
                     <div class="form-check mt-4">
                         <input class="form-check-input" type="checkbox" id="thirteenth_month_salary" name="thirteenth_month_salary"
-                               {{ 'checked' if form_data.thirteenth_month_salary | default(True) }}>
+                               {{ 'checked' if form_data.thirteenth_month_salary | default(True) else '' }}>
                         <label class="form-check-label" for="thirteenth_month_salary">Include 13th Month Salary</label>
                     </div>
                 </div>
@@ -266,6 +276,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const contractNo = document.getElementById('contract_no');
     const startDate = document.getElementById('start_date');
     const endDate = document.getElementById('end_date');
+    const endDateContainer = document.getElementById('end_date_container');
+    const endDateRequired = document.getElementById('end_date_required');
     const employerSigDate = document.getElementById('employer_signature_date');
     const employeeSigDate = document.getElementById('employee_signature_date');
     const salaryAmount = document.getElementById('salary_amount');
@@ -275,7 +287,53 @@ document.addEventListener('DOMContentLoaded', function () {
     const employeeSignature = document.getElementById('employee_signature_name');
     const suggestionsBox = document.getElementById('employee-suggestions');
 
-    // === AUTOCOMPLETE EMPLOYEE SEARCH ===
+    // === TOGGLE END DATE VISIBILITY & REQUIREMENT ===
+    function toggleEndDateField() {
+        const isUDC = contractType.value === 'Undefined Duration Contract (UDC)';
+        if (isUDC) {
+            endDateContainer.style.display = 'none';
+            endDate.removeAttribute('required');
+            endDateRequired.style.display = 'none';
+            endDate.value = '';
+            endDate.setCustomValidity('');
+        } else {
+            endDateContainer.style.display = 'block';
+            endDate.setAttribute('required', 'required');
+            endDateRequired.style.display = 'inline';
+        }
+        updateContractNumber();
+    }
+
+    // === UPDATE CONTRACT NUMBER BASED ON TYPE ===
+    function updateContractNumber() {
+        if (!contractType.value) return;
+        const typeCode = contractType.value.includes('FDC') ? 'FDC' : 'UDC';
+        let numPart = contractNo.value.split('/').pop() || '001';
+        if (!/^\d+$/.test(numPart)) numPart = '001';
+        contractNo.value = `NGOF-${typeCode}/${numPart.padStart(3, '0')}`;
+    }
+
+    // === VALIDATE DATES ONLY WHEN END DATE IS VISIBLE ===
+    function validateDates() {
+        if (endDateContainer.style.display === 'none') {
+            endDate.setCustomValidity('');
+            return;
+        }
+        if (startDate.value && endDate.value && new Date(endDate.value) < new Date(startDate.value)) {
+            endDate.setCustomValidity('End date must be on or after start date.');
+        } else {
+            endDate.setCustomValidity('');
+        }
+    }
+
+    function syncSignatureDates() {
+        if (startDate.value) {
+            if (!employerSigDate.value) employerSigDate.value = startDate.value;
+            if (!employeeSigDate.value) employeeSigDate.value = startDate.value;
+        }
+    }
+
+    // === AUTOCOMPLETE EMPLOYEE SEARCH (unchanged) ===
     let debounceTimer;
     employeeNameInput.addEventListener('input', function () {
         const query = this.value.trim();
@@ -324,14 +382,12 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 300);
     });
 
-    // Hide suggestions when clicking outside
     document.addEventListener('click', (e) => {
         if (!employeeNameInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
             suggestionsBox.style.display = 'none';
         }
     });
 
-    // Fill form with selected employee data
     function fillEmployeeData(emp) {
         document.getElementById('position_title').value = emp.position || '';
         document.getElementById('employee_address').value = emp.address || '';
@@ -349,37 +405,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return div.innerHTML;
     }
 
-    // === REST OF YOUR EXISTING JS (unchanged but improved) ===
-    function updateContractNumber() {
-        if (!contractType.value) return;
-        const prefix = 'NGOF';
-        const typeCode = contractType.value.includes('FDC') ? 'FDC' : 'UDC';
-        const currentNum = contractNo.value.match(/\d+$/)?.[0] || '001';
-        contractNo.value = `${prefix}-${typeCode}/${currentNum.padStart(3, '0')}`;
-    }
-
-    function validateDates() {
-        if (startDate.value && endDate.value && new Date(endDate.value) < new Date(startDate.value)) {
-            endDate.setCustomValidity('End date must be on or after start date.');
-        } else {
-            endDate.setCustomValidity('');
-        }
-    }
-
-    function syncSignatureDates() {
-        if (startDate.value) {
-            if (!employerSigDate.value) employerSigDate.value = startDate.value;
-            if (!employeeSigDate.value) employeeSigDate.value = startDate.value;
-        }
-    }
-
-    document.querySelectorAll('.calendar-icon').forEach(icon => {
-        icon.addEventListener('click', () => {
-            const input = icon.parentElement.querySelector('input[type="date"]');
-            if (input) input.showPicker();
-        });
-    });
-
+    // === SALARY TO WORDS (unchanged) ===
     function numberToWords(num) {
         if (num === 0) return 'Zero';
         const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
@@ -430,12 +456,19 @@ document.addEventListener('DOMContentLoaded', function () {
         salaryFormatted.textContent = 'Formatted: $' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    // Event Listeners
-    contractType.addEventListener('change', updateContractNumber);
+    // === EVENT LISTENERS ===
+    contractType.addEventListener('change', toggleEndDateField);
     startDate.addEventListener('change', validateDates);
     endDate.addEventListener('change', validateDates);
     startDate.addEventListener('change', syncSignatureDates);
     salaryAmount.addEventListener('input', convertSalaryToWords);
+
+    document.querySelectorAll('.calendar-icon').forEach(icon => {
+        icon.addEventListener('click', () => {
+            const input = icon.parentElement.querySelector('input[type="date"]');
+            if (input) input.showPicker();
+        });
+    });
 
     form.addEventListener('submit', function (e) {
         validateDates();
@@ -447,7 +480,8 @@ document.addEventListener('DOMContentLoaded', function () {
         salaryWords.removeAttribute('readonly');
     });
 
-    // Initialize
+    // === INITIALIZE ON PAGE LOAD ===
+    toggleEndDateField();   // Critical: Apply correct state on load/edit
     updateContractNumber();
     convertSalaryToWords();
     syncSignatureDates();

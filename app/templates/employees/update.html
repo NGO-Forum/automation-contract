@@ -6,12 +6,12 @@
 
 <div class="container mt-4">
     <div class="form-header text-center mb-0">
-        <h1><i class="bi bi-pencil-square"></i> Update Employee Contract</h1>
+        <h1>Update Employee Contract</h1>
     </div>
     <div class="form-card">
         <nav class="mb-4">
             <a href="{{ url_for('employees.index') }}" class="btn btn-outline-primary">
-                <i class="bi bi-arrow-left"></i> Back to Employee List
+                Back to Employee List
             </a>
         </nav>
 
@@ -23,7 +23,7 @@
 
             <!-- Employee Details -->
             <div class="section-header mb-4">
-                <h5><i class="bi bi-person-badge"></i> Employee Details</h5>
+                <h5>Employee Details</h5>
                 <hr>
             </div>
             <div class="row g-3 mb-4">
@@ -52,53 +52,52 @@
                 <div class="col-12">
                     <label for="employee_address" class="form-label">Address</label>
                     <textarea class="form-control" id="employee_address" name="employee_address" rows="2"
-                              placeholder="Complete address">{{ form_data.employee_address | default(employee.employee_address) }}</textarea>
+                              placeholder="Complete address">{{ form_data.employee_address | default(employee.employee_address or '') }}</textarea>
                 </div>
                 <div class="col-md-6">
                     <label for="employee_tel" class="form-label">Phone Number</label>
                     <input type="tel" class="form-control" id="employee_tel" name="employee_tel"
-                           value="{{ form_data.employee_tel | default(employee.employee_tel) }}"
+                           value="{{ form_data.employee_tel | default(employee.employee_tel or '') }}"
                            placeholder="e.g., 012 953 650">
                 </div>
                 <div class="col-md-6">
                     <label for="employee_email" class="form-label">Email</label>
                     <input type="email" class="form-control" id="employee_email" name="employee_email"
-                           value="{{ form_data.employee_email | default(employee.employee_email) }}"
+                           value="{{ form_data.employee_email | default(employee.employee_email or '') }}"
                            placeholder="e.g., name@example.com">
                 </div>
             </div>
 
             <!-- Contract Details -->
             <div class="section-header mb-4">
-                <h5><i class="bi bi-file-earmark-contract"></i> Contract Details</h5>
+                <h5>Contract Details</h5>
                 <hr>
             </div>
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
                     <label for="contract_no" class="form-label fw-bold">Contract Number <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="contract_no" name="contract_no"
-                           value="{{ form_data.contract_no | default(employee.contract_no) }}" required>
-                    <div class="invalid-feedback">Please enter valid contract number (e.g., NGOF-FDC/001).</div>
+                           value="{{ form_data.contract_no | default(employee.contract_no) }}" 
+                           placeholder="e.g. NGOF-UDC/001" required>
+                    <small class="text-muted">Can be shared by multiple employees</small>
                 </div>
                 <div class="col-md-4">
                     <label for="contract_type" class="form-label fw-bold">Contract Type <span class="text-danger">*</span></label>
                     <select class="form-select" id="contract_type" name="contract_type" required>
-                        <option value="" disabled>Select Contract Type</option>
                         <option value="Fixed Duration Contract (FDC)"
-                                {{ 'selected' if (form_data.contract_type | default(employee.contract_type)) == 'Fixed Duration Contract (FDC)' }}>
+                                {{ 'selected' if (form_data.contract_type | default(employee.contract_type)) == 'Fixed Duration Contract (FDC)' else '' }}>
                             Fixed Duration Contract (FDC)
                         </option>
                         <option value="Undefined Duration Contract (UDC)"
-                                {{ 'selected' if (form_data.contract_type | default(employee.contract_type)) == 'Undefined Duration Contract (UDC)' }}>
+                                {{ 'selected' if (form_data.contract_type | default(employee.contract_type)) == 'Undefined Duration Contract (UDC)' else '' }}>
                             Undefined Duration Contract (UDC)
                         </option>
                     </select>
-                    <div class="invalid-feedback">Please select a contract type.</div>
                 </div>
                 <div class="col-md-4">
                     <label for="working_hours" class="form-label">Working Hours</label>
                     <input type="text" class="form-control" id="working_hours" name="working_hours"
-                           value="{{ form_data.working_hours | default(employee.working_hours) }}">
+                           value="{{ form_data.working_hours | default(employee.working_hours or 'Monday to Friday: 08:00am-12:00pm and 01:30pm-05:00pm') }}">
                 </div>
 
                 <div class="col-md-6">
@@ -107,82 +106,75 @@
                         <input type="date" class="form-control" id="start_date" name="start_date"
                                value="{{ form_data.start_date | default(employee.start_date.strftime('%Y-%m-%d') if employee.start_date else '') }}"
                                required>
-                        <span class="input-group-text calendar-icon"><i class="bi bi-calendar"></i></span>
-                        <div class="invalid-feedback">Please select a start date.</div>
+                        <span class="input-group-text calendar-icon">Calendar</span>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <label for="end_date" class="form-label fw-bold">End Date <span class="text-danger">*</span></label>
+
+                <!-- End Date - Hidden for UDC -->
+                <div class="col-md-6" id="end_date_container">
+                    <label for="end_date" class="form-label fw-bold">End Date <span class="text-danger" id="end_date_required">*</span></label>
                     <div class="input-group">
                         <input type="date" class="form-control" id="end_date" name="end_date"
-                               value="{{ form_data.end_date | default(employee.end_date.strftime('%Y-%m-%d') if employee.end_date else '') }}"
-                               required>
-                        <span class="input-group-text calendar-icon"><i class="bi bi-calendar"></i></span>
-                        <div class="invalid-feedback">End date must be on or after start date.</div>
+                               value="{{ form_data.end_date | default(employee.end_date.strftime('%Y-%m-%d') if employee.end_date else '') }}">
+                        <span class="input-group-text calendar-icon">Calendar</span>
                     </div>
+                    <small class="text-muted">Leave blank for Undefined Duration Contract (UDC)</small>
                 </div>
             </div>
 
             <!-- Salary & Benefits -->
             <div class="section-header mb-4">
-                <h5><i class="bi bi-currency-dollar"></i> Salary & Other Benefits</h5>
+                <h5>Salary & Other Benefits</h5>
                 <hr>
             </div>
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
                     <label for="salary_amount" class="form-label fw-bold">Salary in Amount (USD) <span class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="salary_amount" name="salary_amount"
-                           value="{{ form_data.salary_amount | default('%.2f' % employee.salary_amount if employee.salary_amount is not none else '0.00') }}"
-                           min="0" step="0.01" required>
+                           value="{{ form_data.salary_amount | default(employee.salary_amount) }}" step="0.01" min="0" required>
                     <small id="salary_formatted" class="text-muted"></small>
-                    <div class="invalid-feedback">Please enter a valid salary amount.</div>
                 </div>
                 <div class="col-md-4">
                     <label for="salary_grade" class="form-label">Salary Scale</label>
                     <input type="text" class="form-control" id="salary_grade" name="salary_grade"
-                           value="{{ form_data.salary_grade | default(employee.salary_grade) }}" placeholder="e.g., G4/L5">
+                           value="{{ form_data.salary_grade | default(employee.salary_grade or '') }}" placeholder="e.g., G4/L5">
                 </div>
                 <div class="col-md-4">
-                    <label for="salary_amount_words" class="form-label">Salary in Amount (Words)</label>
+                    <label for="salary_amount_words" class="form-label">Salary in Words</label>
                     <input type="text" class="form-control" id="salary_amount_words" name="salary_amount_words"
                            value="{{ form_data.salary_amount_words | default(employee.salary_amount_words) }}" readonly>
                 </div>
 
                 <div class="col-md-3">
                     <label for="medical_allowance" class="form-label">Medical Allowance</label>
-                    <input type="number" class="form-control" id="medical_allowance" name="medical_allowance"
-                           value="{{ form_data.medical_allowance | default('%.2f' % employee.medical_allowance if employee.medical_allowance is not none else '150.00') }}"
-                           min="0" step="0.01">
+                    <input type="number" step="0.01" class="form-control" id="medical_allowance" name="medical_allowance"
+                           value="{{ form_data.medical_allowance | default(employee.medical_allowance or 150) }}">
                 </div>
                 <div class="col-md-3">
                     <label for="child_education_allowance" class="form-label">Child Education</label>
-                    <input type="number" class="form-control" id="child_education_allowance" name="child_education_allowance"
-                           value="{{ form_data.child_education_allowance | default('%.2f' % employee.child_education_allowance if employee.child_education_allowance is not none else '60.00') }}"
-                           min="0" step="0.01">
+                    <input type="number" step="0.01" class="form-control" id="child_education_allowance" name="child_education_allowance"
+                           value="{{ form_data.child_education_allowance | default(employee.child_education_allowance or 60) }}">
                 </div>
                 <div class="col-md-3">
                     <label for="delivery_benefit" class="form-label">Delivery Benefit</label>
-                    <input type="number" class="form-control" id="delivery_benefit" name="delivery_benefit"
-                           value="{{ form_data.delivery_benefit | default('%.2f' % employee.delivery_benefit if employee.delivery_benefit is not none else '200.00') }}"
-                           min="0" step="0.01">
+                    <input type="number" step="0.01" class="form-control" id="delivery_benefit" name="delivery_benefit"
+                           value="{{ form_data.delivery_benefit | default(employee.delivery_benefit or 200) }}">
                 </div>
                 <div class="col-md-3">
                     <label for="death_benefit" class="form-label">Death Benefit</label>
-                    <input type="number" class="form-control" id="death_benefit" name="death_benefit"
-                           value="{{ form_data.death_benefit | default('%.2f' % employee.death_benefit if employee.death_benefit is not none else '200.00') }}"
-                           min="0" step="0.01">
+                    <input type="number" step="0.01" class="form-control" id="death_benefit" name="death_benefit"
+                           value="{{ form_data.death_benefit | default(employee.death_benefit or 200) }}">
                 </div>
 
                 <div class="col-md-6">
                     <label for="severance_percentage" class="form-label">Severance (%)</label>
-                    <input type="number" class="form-control" id="severance_percentage" name="severance_percentage"
-                           value="{{ form_data.severance_percentage | default('%.2f' % employee.severance_percentage if employee.severance_percentage is not none else '8.33') }}"
-                           min="0" step="0.01" max="100">
+                    <input type="number" step="0.01" class="form-control" id="severance_percentage" name="severance_percentage"
+                           value="{{ form_data.severance_percentage | default(employee.severance_percentage or 8.33) }}" max="100">
                 </div>
                 <div class="col-md-6">
                     <div class="form-check mt-4">
                         <input class="form-check-input" type="checkbox" id="thirteenth_month_salary" name="thirteenth_month_salary"
-                               {{ 'checked' if form_data.thirteenth_month_salary | default(employee.thirteenth_month_salary) }}>
+                               {{ 'checked' if form_data.thirteenth_month_salary is defined and form_data.thirteenth_month_salary else (employee.thirteenth_month_salary if employee.thirteenth_month_salary else '') }}>
                         <label class="form-check-label" for="thirteenth_month_salary">
                             Include 13th Month Salary
                         </label>
@@ -192,63 +184,62 @@
 
             <!-- Organization Details -->
             <div class="section-header mb-4">
-                <h5><i class="bi bi-building"></i> Organization Details</h5>
+                <h5>Organization Details</h5>
                 <hr>
             </div>
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
                     <label for="organization_name" class="form-label">Organization Name</label>
                     <input type="text" class="form-control" id="organization_name" name="organization_name"
-                           value="{{ form_data.organization_name | default(employee.organization_name) }}">
+                           value="{{ form_data.organization_name | default(employee.organization_name or 'The NGO Forum on Cambodia') }}">
                 </div>
                 <div class="col-md-4">
                     <label for="representative_name" class="form-label">Representative Name</label>
                     <input type="text" class="form-control" id="representative_name" name="representative_name"
-                           value="{{ form_data.representative_name | default(employee.representative_name) }}">
+                           value="{{ form_data.representative_name | default(employee.representative_name or 'Mr. Soeung Saroeun') }}">
                 </div>
                 <div class="col-md-4">
                     <label for="representative_title" class="form-label">Representative Title</label>
                     <input type="text" class="form-control" id="representative_title" name="representative_title"
-                           value="{{ form_data.representative_title | default(employee.representative_title) }}">
+                           value="{{ form_data.representative_title | default(employee.representative_title or 'Executive Director') }}">
                 </div>
                 <div class="col-12">
                     <label for="organization_address" class="form-label">Address</label>
                     <textarea class="form-control" id="organization_address" name="organization_address" rows="2">
-                        {{ form_data.organization_address | default(employee.organization_address) }}
-                    </textarea>
+{{ form_data.organization_address | default(employee.organization_address or '#9-11, St. 476, Sangkat Toul Tompong I, Khan Chamka Morn, Phnom Penh, Cambodia') }}</textarea>
                 </div>
                 <div class="col-md-4">
                     <label for="organization_tel" class="form-label">Phone Number</label>
                     <input type="tel" class="form-control" id="organization_tel" name="organization_tel"
-                           value="{{ form_data.organization_tel | default(employee.organization_tel) }}">
+                           value="{{ form_data.organization_tel | default(employee.organization_tel or '023 214 429') }}">
                 </div>
                 <div class="col-md-4">
                     <label for="organization_email" class="form-label">Email</label>
                     <input type="email" class="form-control" id="organization_email" name="organization_email"
-                           value="{{ form_data.organization_email | default(employee.organization_email) }}">
+                           value="{{ form_data.organization_email | default(employee.organization_email or 'info@ngoforum.org.kh') }}">
                 </div>
                 <div class="col-md-4">
                     <label for="organization_fax" class="form-label">Fax</label>
                     <input type="text" class="form-control" id="organization_fax" name="organization_fax"
-                           value="{{ form_data.organization_fax | default(employee.organization_fax) }}">
+                           value="{{ form_data.organization_fax | default(employee.organization_fax or '023 994 063') }}">
                 </div>
             </div>
 
             <!-- Signatures -->
             <div class="section-header mb-4">
-                <h5><i class="bi bi-pen"></i> Signatures</h5>
+                <h5>Signatures</h5>
                 <hr>
             </div>
             <div class="row g-3 mb-4">
                 <div class="col-md-6">
                     <label for="employer_signature_name" class="form-label">Employer Signature</label>
                     <input type="text" class="form-control" id="employer_signature_name" name="employer_signature_name"
-                           value="{{ form_data.employer_signature_name | default(employee.employer_signature_name) }}">
+                           value="{{ form_data.employer_signature_name | default(employee.employer_signature_name or 'Mr. Soeung Saroeun') }}">
                 </div>
                 <div class="col-md-6">
                     <label for="employee_signature_name" class="form-label">Employee Signature</label>
                     <input type="text" class="form-control" id="employee_signature_name" name="employee_signature_name"
-                           value="{{ form_data.employee_signature_name | default(employee.employee_signature_name) }}">
+                           value="{{ form_data.employee_signature_name | default(employee.employee_signature_name or employee.employee_name) }}">
                 </div>
 
                 <div class="col-md-6">
@@ -256,7 +247,7 @@
                     <div class="input-group">
                         <input type="date" class="form-control" id="employer_signature_date" name="employer_signature_date"
                                value="{{ form_data.employer_signature_date | default(employee.employer_signature_date.strftime('%Y-%m-%d') if employee.employer_signature_date else '') }}">
-                        <span class="input-group-text calendar-icon"><i class="bi bi-calendar"></i></span>
+                        <span class="input-group-text calendar-icon">Calendar</span>
                     </div>
                 </div>
                 <div class="col-md-6">
@@ -264,15 +255,15 @@
                     <div class="input-group">
                         <input type="date" class="form-control" id="employee_signature_date" name="employee_signature_date"
                                value="{{ form_data.employee_signature_date | default(employee.employee_signature_date.strftime('%Y-%m-%d') if employee.employee_signature_date else '') }}">
-                        <span class="input-group-text calendar-icon"><i class="bi bi-calendar"></i></span>
+                        <span class="input-group-text calendar-icon">Calendar</span>
                     </div>
                 </div>
             </div>
 
             <!-- Submit -->
             <div class="text-center mt-5">
-                <button type="submit" class="btn btn-primary btn-lg px-5">
-                    <i class="bi bi-save"></i> Update Employee Contract
+                <button type="submit" class="btn btn-success btn-lg px-5">
+                    Update Contract
                 </button>
             </div>
         </form>
@@ -281,115 +272,130 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const form = document.getElementById('employeeForm');
     const contractType = document.getElementById('contract_type');
-    const contractNo = document.getElementById('contract_no');
-    const startDate = document.getElementById('start_date');
+    const endDateContainer = document.getElementById('end_date_container');
+    const endDateRequired = document.getElementById('end_date_required');
     const endDate = document.getElementById('end_date');
-    const employerSigDate = document.getElementById('employer_signature_date');
-    const employeeSigDate = document.getElementById('employee_signature_date');
+    const startDate = document.getElementById('start_date');
     const salaryAmount = document.getElementById('salary_amount');
     const salaryWords = document.getElementById('salary_amount_words');
     const salaryFormatted = document.getElementById('salary_formatted');
     const employeeNameInput = document.getElementById('employee_name');
     const employeeSignature = document.getElementById('employee_signature_name');
     const suggestionsBox = document.getElementById('employee-suggestions');
+    const employerSigDate = document.getElementById('employer_signature_date');
+    const employeeSigDate = document.getElementById('employee_signature_date');
 
-    // AUTOCOMPLETE SEARCH
-    let debounceTimer;
-    employeeNameInput.addEventListener('input', function () {
-        const query = this.value.trim();
-        clearTimeout(debounceTimer);
+    // Toggle End Date Field
+    function toggleEndDateField() {
+        const isUDC = contractType.value === 'Undefined Duration Contract (UDC)';
+        if (isUDC) {
+            endDateContainer.style.display = 'none';
+            endDate.removeAttribute('required');
+            endDateRequired.style.display = 'none';
+            endDate.value = '';
+            endDate.setCustomValidity('');
+        } else {
+            endDateContainer.style.display = 'block';
+            endDate.setAttribute('required', 'required');
+            endDateRequired.style.display = 'inline';
+        }
+    }
 
-        if (query.length < 2) {
-            suggestionsBox.style.display = 'none';
+    // Validate dates only when end date is visible
+    function validateDates() {
+        if (endDateContainer.style.display === 'none') {
+            endDate.setCustomValidity('');
             return;
         }
-
-        debounceTimer = setTimeout(() => {
-            fetch(`/employees/api/employees/search?q=${encodeURIComponent(query)}`)
-                .then(r => r.json())
-                .then(data => {
-                    suggestionsBox.innerHTML = '';
-                    if (data.length === 0) {
-                        suggestionsBox.style.display = 'none';
-                        return;
-                    }
-                    data.forEach(emp => {
-                        const item = document.createElement('a');
-                        item.className = 'dropdown-item py-2 border-bottom';
-                        item.href = '#';
-                        item.innerHTML = `
-                            <strong>${escapeHtml(emp.name)}</strong><br>
-                            <small class="text-muted">
-                                ${escapeHtml(emp.position)} | ${escapeHtml(emp.phone || 'No phone')} | ${escapeHtml(emp.email || 'No email')}
-                            </small>
-                        `;
-                        item.onclick = (e) => {
-                            e.preventDefault();
-                            fillEmployeeData(emp);
-                            suggestionsBox.style.display = 'none';
-                        };
-                        suggestionsBox.appendChild(item);
-                    });
-                    suggestionsBox.style.display = 'block';
-                })
-                .catch(() => suggestionsBox.style.display = 'none');
-        }, 300);
-    });
-
-    function fillEmployeeData(emp) {
-        employeeNameInput.value = emp.name;
-        document.getElementById('position_title').value = emp.position || '';
-        document.getElementById('employee_address').value = emp.address || '';
-        document.getElementById('employee_tel').value = emp.phone || '';
-        document.getElementById('employee_email').value = emp.email || '';
-        if (!employeeSignature.value.trim()) {
-            employeeSignature.value = emp.name;
-        }
-    }
-
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text || '';
-        return div.innerHTML;
-    }
-
-    // Hide dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!employeeNameInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
-            suggestionsBox.style.display = 'none';
-        }
-    });
-
-    // Existing features (contract number, salary words, dates, etc.)
-    function updateContractNumber() {
-        if (!contractType.value) return;
-        const prefix = 'NGOF';
-        const typeCode = contractType.value.includes('FDC') ? 'FDC' : 'UDC';
-        const currentNum = contractNo.value.match(/\d+$/)?.[0]?.padStart(3, '0') || '001';
-        contractNo.value = `${prefix}-${typeCode}/${currentNum}`;
-    }
-    contractType.addEventListener('change', updateContractNumber);
-
-    function validateDates() {
         if (startDate.value && endDate.value && new Date(endDate.value) < new Date(startDate.value)) {
             endDate.setCustomValidity('End date must be on or after start date.');
         } else {
             endDate.setCustomValidity('');
         }
     }
-    startDate.addEventListener('change', validateDates);
-    endDate.addEventListener('change', validateDates);
 
+    // Sync signature dates
     function syncSignatureDates() {
-        if (startDate.value) {
-            if (!employerSigDate.value) employerSigDate.value = startDate.value;
-            if (!employeeSigDate.value) employeeSigDate.value = startDate.value;
-        }
+        if (startDate.value && !employerSigDate.value) employerSigDate.value = startDate.value;
+        if (startDate.value && !employeeSigDate.value) employeeSigDate.value = startDate.value;
     }
-    startDate.addEventListener('change', syncSignatureDates);
 
+    // Salary to Words
+    function numberToWords(num) {
+        if (num === 0) return 'Zero';
+        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+                      'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+        if (num < 20) return ones[num];
+        if (num < 100) return tens[Math.floor(num/10)] + (num%10 ? ' ' + ones[num%10] : '');
+        if (num < 1000) return ones[Math.floor(num/100)] + ' Hundred' + (num%100 ? ' ' + numberToWords(num%100) : '');
+        return 'Large Number';
+    }
+
+    function convertSalaryToWords() {
+        const val = parseFloat(salaryAmount.value) || 0;
+        if (val <= 0) {
+            salaryWords.value = '';
+            salaryFormatted.textContent = '';
+            return;
+        }
+        const dollars = Math.floor(val);
+        const cents = Math.round((val - dollars) * 100);
+        let words = numberToWords(dollars) + ' US Dollars';
+        if (cents > 0) words += ' and ' + numberToWords(cents) + ' Cents';
+        words += ' only';
+        salaryWords.value = words;
+        salaryFormatted.textContent = '$' + val.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    // Autocomplete Search
+    let debounceTimer;
+    employeeNameInput.addEventListener('input', function () {
+        const query = this.value.trim();
+        clearTimeout(debounceTimer);
+        if (query.length < 2) {
+            suggestionsBox.style.display = 'none';
+            return;
+        }
+        debounceTimer = setTimeout(() => {
+            fetch(`/employees/api/employees/search?q=${encodeURIComponent(query)}`)
+                .then(r => r.json())
+                .then(data => {
+                    suggestionsBox.innerHTML = '';
+                    if (!data.length) {
+                        suggestionsBox.style.display = 'none';
+                        return;
+                    }
+                    data.forEach(emp => {
+                        const item = document.createElement('a');
+                        item.className = 'dropdown-item py-2';
+                        item.href = '#';
+                        item.innerHTML = `<strong>${emp.name}</strong><br><small class="text-muted">${emp.position || ''} | ${emp.phone || ''}</small>`;
+                        item.onclick = (e) => {
+                            e.preventDefault();
+                            employeeNameInput.value = emp.name;
+                            document.getElementById('position_title').value = emp.position || '';
+                            document.getElementById('employee_address').value = emp.address || '';
+                            document.getElementById('employee_tel').value = emp.phone || '';
+                            document.getElementById('employee_email').value = emp.email || '';
+                            if (!employeeSignature.value.trim()) employeeSignature.value = emp.name;
+                            suggestionsBox.style.display = 'none';
+                        };
+                        suggestionsBox.appendChild(item);
+                    });
+                    suggestionsBox.style.display = 'block';
+                });
+        }, 300);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!employeeNameInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+            suggestionsBox.style.display = 'none';
+        }
+    });
+
+    // Calendar icon click
     document.querySelectorAll('.calendar-icon').forEach(icon => {
         icon.addEventListener('click', () => {
             const input = icon.parentElement.querySelector('input[type="date"]');
@@ -397,69 +403,25 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    function numberToWords(num) {
-        if (num === 0) return 'Zero';
-        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
-        const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-        const scales = ['', 'Thousand', 'Million', 'Billion'];
-
-        function chunkToWords(n) {
-            let w = '';
-            const h = Math.floor(n / 100);
-            const r = n % 100;
-            if (h > 0) w += ones[h] + ' Hundred ';
-            if (r > 0) {
-                if (r < 10) w += ones[r];
-                else if (r < 20) w += teens[r - 10];
-                else {
-                    w += tens[Math.floor(r / 10)];
-                    if (r % 10 > 0) w += '-' + ones[r % 10];
-                }
-            }
-            return w.trim();
-        }
-
-        const parts = [];
-        let scale = 0;
-        while (num > 0) {
-            const chunk = num % 1000;
-            if (chunk > 0) parts.unshift(chunkToWords(chunk) + (scales[scale] ? ' ' + scales[scale] : ''));
-            num = Math.floor(num / 1000);
-            scale++;
-        }
-        return parts.join(' ').trim();
-    }
-
-    function convertSalaryToWords() {
-        const value = parseFloat(salaryAmount.value) || 0;
-        if (value <= 0) {
-            salaryWords.value = '';
-            salaryFormatted.textContent = '';
-            return;
-        }
-        const integerPart = Math.floor(value);
-        const decimalPart = Math.round((value - integerPart) * 100);
-        let words = numberToWords(integerPart) + ' US Dollars';
-        if (decimalPart > 0) words += ' and ' + numberToWords(decimalPart) + ' Cents';
-        words += ' only';
-        salaryWords.value = words;
-        salaryFormatted.textContent = 'Formatted: $' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
+    // Event Listeners
+    contractType.addEventListener('change', toggleEndDateField);
+    startDate.addEventListener('change', () => { validateDates(); syncSignatureDates(); });
+    endDate.addEventListener('change', validateDates);
     salaryAmount.addEventListener('input', convertSalaryToWords);
 
-    form.addEventListener('submit', function (e) {
+    // Form submit
+    document.getElementById('employeeForm').addEventListener('submit', function(e) {
         validateDates();
-        if (!form.checkValidity()) {
+        if (!this.checkValidity()) {
             e.preventDefault();
             e.stopPropagation();
         }
-        form.classList.add('was-validated');
+        this.classList.add('was-validated');
         salaryWords.removeAttribute('readonly');
     });
 
     // Initialize
-    updateContractNumber();
+    toggleEndDateField();
     convertSalaryToWords();
     validateDates();
     syncSignatureDates();

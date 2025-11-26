@@ -22,7 +22,7 @@
             </div>
         </div>
     </div>
-    <!-- Filter + Actions -->
+     <!-- Filter + Actions -->
     <div class="table-card card-1 ">
         <form id="filterForm" action="{{ url_for('employees.index') }}" method="get" class="filter-form d-flex flex-wrap gap-3 mb-4 align-items-center justify-content-between">
             <!-- Action Buttons -->
@@ -31,44 +31,64 @@
                     <i class='bx bx-plus-circle'></i> Add New Employee 
                 </a>
                 <a href="{{ url_for('employees.download_all_docx') }}" class="btn btn-success">
-                    <i class='bx bx-download'></i> Download All  (ZIP)
-                </a>
+                     <i class='bx bx-download'></i> Download All  (ZIP)
+                    </a>
+                </div>
+                    <!-- Filters -->
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            <!-- Contract Type Filter -->
+            <div class="input-group w-auto">
+                <label class="input-group-text" for="contractTypeFilter">Contract Type</label>
+                <select id="contractTypeFilter" name="contract_type" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Types</option>
+                    <option value="Fixed Duration Contract (FDC)" 
+                            {% if contract_type_filter == 'Fixed Duration Contract (FDC)' %}selected{% endif %}>
+                        Fixed Duration (FDC)
+                    </option>
+                    <option value="Undefined Duration Contract (UDC)" 
+                            {% if contract_type_filter == 'Undefined Duration Contract (UDC)' %}selected{% endif %}>
+                        Undefined Duration (UDC)
+                    </option>
+                </select>
             </div>
-            <!-- Filters -->
-            <div class="d-flex flex-wrap gap-3 align-items-center">
-                <!-- Search -->
-                <div class="input-group w-auto position-relative">
-                    <span class="input-group-text"><i class='bx bx-search'></i></span>
-                    <input type="text" name="search" id="searchInput" class="form-control" placeholder="Search by Name or Position" value="{{ search_query }}">
-                    <button type="button" id="clearSearch" class="btn btn-outline-secondary {% if not search_query %}d-none{% endif %}">
-                        <i class='bx bx-x'></i>
-                    </button>
-                    <button type="submit" class="btn btn-primary" id="searchButton">Search</button>
-                    <div id="searchSpinner" class="spinner-border spinner-border-sm position-absolute" style="right: 80px; top: 50%; transform: translateY(-50%); display: none;" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                </div>
-                <!-- Sort -->
-                <div class="input-group w-auto">
-                    <label class="input-group-text" for="sortSelect">Sort</label>
-                    <select id="sortSelect" name="sort" class="form-select" onchange="this.form.submit()">
-                        <option value="created_at_desc" {% if sort_order == 'created_at_desc' %}selected{% endif %}>Newest First</option>
-                        <option value="employee_name_asc" {% if sort_order == 'employee_name_asc' %}selected{% endif %}>Name (A-Z)</option>
-                        <option value="employee_name_desc" {% if sort_order == 'employee_name_desc' %}selected{% endif %}>Name (Z-A)</option>
-                        <option value="start_date_asc" {% if sort_order == 'start_date_asc' %}selected{% endif %}>Start Date (Earliest)</option>
-                        <option value="start_date_desc" {% if sort_order == 'start_date_desc' %}selected{% endif %}>Start Date (Latest)</option>
-                    </select>
-                </div>
-                <!-- Entries -->
-                <div class="input-group w-auto">
-                    <label class="input-group-text" for="entriesSelect">Show</label>
-                    <select id="entriesSelect" name="entries" class="form-select" onchange="this.form.submit()">
-                        <option value="5" {% if entries_per_page == 5 %}selected{% endif %}>5</option>
-                        <option value="10" {% if entries_per_page == 10 %}selected{% endif %}>10</option>
-                        <option value="15" {% if entries_per_page == 15 %}selected{% endif %}>15</option>
-                    </select>
+
+            <!-- Search -->
+            <div class="input-group w-auto position-relative">
+                <span class="input-group-text">Search</span>
+                <input type="text" name="search" id="searchInput" class="form-control" placeholder="Search by Name or Position" value="{{ search_query }}">
+                <button type="button" id="clearSearch" class="btn btn-outline-secondary {% if not search_query %}d-none{% endif %}">
+                    Clear
+                </button>
+                <button type="submit" class="btn btn-primary" id="searchButton">Search</button>
+                <div id="searchSpinner" class="spinner-border spinner-border-sm position-absolute" style="right: 80px; top: 50%; transform: translateY(-50%); display: none;" role="status">
+                    <span class="visually-hidden">Loading...</span>
                 </div>
             </div>
+
+            <!-- Sort -->
+            <div class="input-group w-auto">
+                <label class="input-group-text" for="sortSelect">Sort</label>
+                <select id="sortSelect" name="sort" class="form-select" onchange="this.form.submit()">
+                    <option value="created_at_desc" {% if sort_order == 'created_at_desc' %}selected{% endif %}>Newest First</option>
+                    <option value="employee_name_asc" {% if sort_order == 'employee_name_asc' %}selected{% endif %}>Name (A-Z)</option>
+                    <option value="employee_name_desc" {% if sort_order == 'employee_name_desc' %}selected{% endif %}>Name (Z-A)</option>
+                    <option value="start_date_asc" {% if sort_order == 'start_date_asc' %}selected{% endif %}>Start Date (Earliest)</option>
+                    <option value="start_date_desc" {% if sort_order == 'start_date_desc' %}selected{% endif %}>Start Date (Latest)</option>
+                </select>
+            </div>
+
+            <!-- Entries -->
+            <div class="input-group w-auto">
+                <label class="input-group-text" for="entriesSelect">Show</label>
+                <select id="entriesSelect" name="entries" class="form-select" onchange="this.form.submit()">
+                    <option value="5" {% if entries_per_page == 5 %}selected{% endif %}>5</option>
+                    <option value="10" {% if entries_per_page == 10 %}selected{% endif %}>10</option>
+                    <option value="15" {% if entries_per_page == 15 %}selected{% endif %}>15</option>
+                    <option value="25" {% if entries_per_page == 25 %}selected{% endif %}>25</option>
+                    <option value="50" {% if entries_per_page == 50 %}selected{% endif %}>50</option>
+                </select>
+            </div>
+        </div>
         </form>
         <!-- Table -->
         <div class="table-responsive">
