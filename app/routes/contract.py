@@ -961,7 +961,7 @@ def send_contract_email(contract, output, filename):
         msg = Message(
             subject=f"Consultant Contract Document - NGOF ({contract.contract_number or 'N/A'})",
             sender=mail.sender,
-            recipients=['chhea.chhouy@student.passerellesnumeriques.org', 'chhea@ngoforum.org.kh'],
+            recipients=['sreynich@ngoforum.org.kh', 'chhea@ngoforum.org.kh'],
             cc=[],
             bcc=[]
         )
