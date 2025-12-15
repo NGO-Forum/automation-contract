@@ -95,8 +95,14 @@
                   <li><h6 class="dropdown-header">Consultants</h6></li>
                   <li><a class="dropdown-item" href="{{ url_for('contracts.index') }}">List of Consultants</a></li>
                   <li><a class="dropdown-item" href="{{ url_for('contracts.create') }}">Add New Consultants</a></li>
-                  <li><a class="dropdown-item" href="{{ url_for('docx_upload.uploads_list') }}">
-                 Signed Service Contracts </a></li>
+                  {% if current_user.has_role('Admin') %}
+                    <li>
+                      <a class="dropdown-item" href="{{ url_for('docx_upload.uploads_list') }}">
+                        Signed Service Contracts
+                      </a>
+                    </li>
+                  {% endif %}
+
                   <li><a class="dropdown-item" href="{{ url_for('reports.contract_report') }}">Report Consultants</a></li>
                 </ul>
               </li>

@@ -270,11 +270,20 @@
                                 <div class="input-group">
                                     <input type="text" class="form-control installment-desc" name="paymentInstallmentDesc[]" value="{{ installment.description | default('') }}" placeholder="e.g., Installment #1 (40%)" readonly>
                                     <select class="form-select installment-percentage" name="paymentInstallmentPercentage[]" required>
-                                        <option value="" disabled {{ 'selected' if not installment.description }}>Select Percentage</option>
-                                        {% for percentage in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] %}
-                                        <option value="{{ percentage }}" {{ 'selected' if installment.description and percentage | string in installment.description }}>{{ percentage }}%</option>
+                                    <option value="" disabled {% if not installment.description %}selected{% endif %}>Select Percentage</option>
+                                    {% set selected_percentage = None %}
+                                    {% if installment.description %}
+                                        {% for p in [5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100] %}
+                                            {% if ('({}%)'.format(p)) in installment.description %}
+                                                {% set selected_percentage = p %}
+                                            {% endif %}
                                         {% endfor %}
-                                    </select>
+                                    {% endif %}
+                                    {% for percentage in [5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100] %}
+                                        <option value="{{ percentage }}" {% if selected_percentage == percentage %}selected{% endif %}>{{ percentage }}%</option>
+                                    {% endfor %}
+                                     </select>
+
                                     <button type="button" class="btn btn-danger btn-remove-installment {{ 'd-none' if loop.first and (form_data.payment_installments | default([])) | length == 1 else '' }}">Remove</button>
                                     <div class="invalid-feedback">Please select a percentage.</div>
                                 </div>
@@ -619,15 +628,112 @@
         });
     }
 
+        /* ==============================
+    INSTALLMENT PERCENTAGE SYSTEM
+    ================================ */
+
     function updateInstallmentDescriptions() {
-        const containers = document.querySelectorAll('.installment-container');
-        containers.forEach((container, index) => {
+        document.querySelectorAll('.installment-container').forEach((container, index) => {
             const select = container.querySelector('.installment-percentage');
-            const descInput = container.querySelector('.installment-desc');
-            const percentage = select.value ? `${select.value}%` : '';
-            descInput.value = `Installment #${index + 1} (${percentage})`;
+            const customInput = container.querySelector('.installment-custom-percentage');
+            const desc = container.querySelector('.installment-desc');
+
+            let percentage = '';
+
+            if (select.value === 'custom') {
+                percentage = customInput.value ? customInput.value + '%' : '';
+            } else if (select.value) {
+                percentage = select.value + '%';
+            }
+
+            desc.value = `Installment #${index + 1} (${percentage})`;
         });
     }
+
+    function handlePercentageChange(container) {
+        const select = container.querySelector('.installment-percentage');
+        const customInput = container.querySelector('.installment-custom-percentage');
+
+        if (select.value === 'custom') {
+            customInput.classList.remove('d-none');
+            customInput.required = true;
+        } else {
+            customInput.classList.add('d-none');
+            customInput.required = false;
+            customInput.value = '';
+        }
+
+        updateInstallmentDescriptions();
+    }
+
+    function getInstallmentPercentages() {
+        return Array.from(document.querySelectorAll('.installment-container')).map(container => {
+            const select = container.querySelector('.installment-percentage');
+            const custom = container.querySelector('.installment-custom-percentage');
+
+            if (select.value === 'custom') {
+                return parseFloat(custom.value) || 0;
+            }
+            return parseFloat(select.value) || 0;
+        });
+    }
+
+    function validateTotalPercentage() {
+        const total = getInstallmentPercentages().reduce((sum, val) => sum + val, 0);
+        return Math.abs(total - 100) < 0.01;
+    }
+
+    function addInstallmentField() {
+        const container = document.getElementById('installmentContainer');
+        const first = container.querySelector('.installment-container');
+        const clone = first.cloneNode(true);
+
+        // Reset fields
+        clone.querySelector('.installment-desc').value = '';
+        clone.querySelector('.installment-percentage').value = '';
+        clone.querySelector('.installment-custom-percentage').value = '';
+        clone.querySelector('.installment-custom-percentage').classList.add('d-none');
+        clone.querySelector('textarea').value = '';
+        clone.querySelector('input[type="date"]').value = '';
+
+        // Remove button
+        const removeBtn = clone.querySelector('.btn-remove-installment');
+        removeBtn.classList.remove('d-none');
+        removeBtn.onclick = () => {
+            clone.remove();
+            updateInstallmentDescriptions();
+        };
+
+        // Event listeners for new clone
+        clone.querySelector('.installment-percentage').onchange = () => handlePercentageChange(clone);
+        clone.querySelector('.installment-custom-percentage').oninput = updateInstallmentDescriptions;
+
+        container.appendChild(clone);
+        updateInstallmentDescriptions();
+    }
+
+    function initInstallments() {
+        document.querySelectorAll('.installment-container').forEach(container => {
+            container.querySelector('.installment-percentage').onchange = () => handlePercentageChange(container);
+            container.querySelector('.installment-custom-percentage').oninput = updateInstallmentDescriptions;
+        });
+    }
+
+    /* ==============================
+    FORM SUBMIT VALIDATION
+    ================================ */
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initInstallments();
+        updateInstallmentDescriptions();
+
+        document.getElementById('contractForm').addEventListener('submit', function (e) {
+            if (!validateTotalPercentage()) {
+                e.preventDefault();
+                alert('Total installment percentage must equal 100%.');
+            }
+        });
+    });
 
     function assignPercentages() {
         const containers = document.querySelectorAll('.installment-container');
