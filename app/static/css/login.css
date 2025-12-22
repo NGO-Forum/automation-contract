@@ -94,3 +94,9 @@ body {
         font-size: 0.9rem;
       }
     }
+
+    .center-text {
+  text-align: center;
+  margin-top: 10px;
+  color: rgba(15, 107, 235, 0.756);
+}
